@@ -1,14 +1,19 @@
 #!/bin/sh
 # noslop Claude Code hook: block quality-bypass attempts
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | grep -o '"command":"[^"]*"' | cut -d'"' -f4)
 
-if echo "$COMMAND" | grep -q -- '--no-verify'; then
+if command -v jq >/dev/null 2>&1; then
+  COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+else
+  COMMAND=$(echo "$INPUT" | grep -o '"command":"[^"]*"' | head -1 | cut -d'"' -f4)
+fi
+
+if echo "$COMMAND" | grep -qF -- '--no-verify'; then
   echo '{"decision":"block","reason":"noslop: --no-verify bypasses pre-commit hooks."}'
   exit 0
 fi
 
-if echo "$COMMAND" | grep -qi 'SKIP_CI\|skip_ci\|\[skip ci\]'; then
+if echo "$COMMAND" | grep -qiF 'SKIP_CI' || echo "$COMMAND" | grep -qF '[skip ci]'; then
   echo '{"decision":"block","reason":"noslop: CI-skip patterns are not allowed."}'
   exit 0
 fi

@@ -28,9 +28,10 @@ describe('createPack', () => {
     expect(() => createPack('typescript', '   ', gates)).toThrow('Pack name must not be empty.');
   });
 
-  it('accepts an empty gates array', () => {
-    const pack = createPack('empty', 'Empty', []);
-    expect(pack.gates).toHaveLength(0);
+  it('throws when gates array is empty', () => {
+    expect(() => createPack('empty', 'Empty', [])).toThrow(
+      "Pack 'empty' must define at least one gate.",
+    );
   });
 });
 
@@ -38,6 +39,6 @@ describe('packGates', () => {
   it('returns the gates array', () => {
     const gates = [createGate('fmt', 'cargo fmt', 'fast')];
     const pack = createPack('rust', 'Rust', gates);
-    expect(packGates(pack)).toBe(pack.gates);
+    expect(packGates(pack)).toEqual(pack.gates);
   });
 });

@@ -11,7 +11,7 @@ if echo "$MSG" | grep -qiE '\[skip ci\]|skip-checks|--no-verify'; then
 fi
 
 # Enforce Conventional Commits pattern
-PATTERN='^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)(\(.+\))?(!)?: .{1,100}'
+PATTERN='^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)(\(.+\))?(!)?: .{1,100}$'
 if ! echo "$MSG" | grep -qE "$PATTERN"; then
   echo "noslop: commit message does not follow Conventional Commits." >&2
   echo "  Expected: type(scope): description" >&2

@@ -77,4 +77,18 @@ describe('check use case', () => {
     expect(outcome?.command).toBe('eslint .');
     expect(outcome?.result.exitCode).toBe(0);
   });
+
+  it('records failure with stderr when runner throws (M6)', async () => {
+    const pack = createPack('ts', 'TS', [createGate('lint', 'eslint .', 'fast')]);
+    const throwingRunner = {
+      run: async () => {
+        throw new Error('spawn ENOENT');
+      },
+    };
+
+    const result = await check(makeCommand({ packs: [pack], tier: 'fast' }), throwingRunner);
+    expect(result.passed).toBe(false);
+    expect(result.outcomes[0]?.result.exitCode).toBe(1);
+    expect(result.outcomes[0]?.result.stderr).toContain('spawn ENOENT');
+  });
 });
