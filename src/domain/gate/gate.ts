@@ -13,6 +13,12 @@ export function createGate(label: string, command: string, tier: GateTier): Gate
   if (command.trim().length === 0) {
     throw new Error('Gate command must not be empty.');
   }
+  const validTiers: GateTier[] = ['fast', 'slow', 'ci'];
+  if (!validTiers.includes(tier)) {
+    throw new Error(
+      `Invalid gate tier '${tier as string}'. Must be one of: ${validTiers.join(', ')}.`,
+    );
+  }
   return { label, command, tier };
 }
 

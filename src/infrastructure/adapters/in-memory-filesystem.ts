@@ -35,6 +35,10 @@ export class InMemoryFilesystem implements IFilesystem {
   }
 
   async readdir(path: string): Promise<string[]> {
+    if (!(await this.isDirectory(path))) {
+      throw new Error(`Directory not found: ${path}`);
+    }
+
     const entries = new Set<string>();
     const prefix = path.endsWith('/') ? path : `${path}/`;
 

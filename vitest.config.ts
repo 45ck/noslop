@@ -20,7 +20,7 @@ export default defineConfig({
         // CLI entry: integration-tested via process spawn, not unit tests
         'src/presentation/cli.ts',
         // Real I/O adapters: tested indirectly via in-memory counterparts
-        'src/infrastructure/adapters/node-*.ts',
+        'src/infrastructure/adapters/node-filesystem.ts',
         // Pack declarations: pure data, exercised by use-case tests
         'src/domain/packs/*.ts',
       ],

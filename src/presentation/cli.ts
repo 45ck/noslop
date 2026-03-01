@@ -11,10 +11,12 @@ import { DOTNET_PACK } from '../domain/packs/dotnet.js';
 import { createConfig, DEFAULT_PROTECTED_PATHS } from '../domain/config/noslop-config.js';
 import type { Pack } from '../domain/pack/pack.js';
 import type { GateTier } from '../domain/gate/gate.js';
+import type { IFilesystem } from '../application/ports/filesystem.js';
+import { fileURLToPath } from 'node:url';
 
 const ALL_PACKS: Pack[] = [TYPESCRIPT_PACK, RUST_PACK, DOTNET_PACK];
 
-async function detectPacks(targetDir: string, fs: NodeFilesystem): Promise<Pack[]> {
+export async function detectPacks(targetDir: string, fs: IFilesystem): Promise<Pack[]> {
   const detected: Pack[] = [];
 
   const tsIndicators = ['tsconfig.json', 'package.json'];
@@ -29,19 +31,10 @@ async function detectPacks(targetDir: string, fs: NodeFilesystem): Promise<Pack[
     detected.push(RUST_PACK);
   }
 
-  const dotnetIndicators = ['*.csproj', '*.sln', 'global.json'];
-  for (const indicator of dotnetIndicators) {
-    if (await fs.exists(`${targetDir}/${indicator}`)) {
-      detected.push(DOTNET_PACK);
-      break;
-    }
-  }
-
-  if (detected.length === 0) {
-    const entries = await fs.readdir(targetDir).catch(() => []);
-    const csprojFound = entries.some((e) => e.endsWith('.csproj') || e.endsWith('.sln'));
-    if (csprojFound) detected.push(DOTNET_PACK);
-  }
+  const rootEntries = await fs.readdir(targetDir).catch(() => []);
+  const hasDotnet = rootEntries.some((e) => e.endsWith('.csproj') || e.endsWith('.sln'));
+  const hasGlobalJson = await fs.exists(`${targetDir}/global.json`);
+  if (hasDotnet || hasGlobalJson) detected.push(DOTNET_PACK);
 
   return detected.length > 0 ? detected : [TYPESCRIPT_PACK];
 }
@@ -129,8 +122,9 @@ program
   .description('Run quality gates for detected packs')
   .option('-d, --dir <path>', 'target directory', process.cwd())
   .option('--tier <tier>', 'gate tier to run (fast|slow|ci)', 'fast')
+  .option('--verbose', 'show output for all gates, not just failures')
   .option('--pack <id>', 'limit to a specific pack')
-  .action(async (options: { dir: string; tier: string; pack?: string }) => {
+  .action(async (options: { dir: string; tier: string; verbose?: boolean; pack?: string }) => {
     const fs = new NodeFilesystem();
     const runner = new NodeProcessRunner();
     const targetDir = options.dir;
@@ -153,10 +147,10 @@ program
     for (const outcome of result.outcomes) {
       const icon = outcome.passed ? chalk.green('✓') : chalk.red('✗');
       console.log(`  ${icon} ${outcome.label}`);
-      if (!outcome.passed && outcome.result.stdout) {
+      if ((options.verbose || !outcome.passed) && outcome.result.stdout) {
         console.log(chalk.dim(outcome.result.stdout.trim()));
       }
-      if (!outcome.passed && outcome.result.stderr) {
+      if ((options.verbose || !outcome.passed) && outcome.result.stderr) {
         console.log(chalk.dim(outcome.result.stderr.trim()));
       }
     }
@@ -196,4 +190,5 @@ program
     }
   });
 
-program.parse();
+/* c8 ignore next 2 -- CLI entry guard, tested via process spawn */
+if (process.argv[1] === fileURLToPath(import.meta.url)) program.parse();

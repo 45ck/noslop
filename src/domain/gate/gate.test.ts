@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { createGate, gatesForTier, isCi, isFast, isSlow, type Gate } from './gate.js';
+import {
+  createGate,
+  gatesForTier,
+  isCi,
+  isFast,
+  isSlow,
+  type Gate,
+  type GateTier,
+} from './gate.js';
 
 describe('createGate', () => {
   it('creates a gate with valid inputs', () => {
@@ -29,6 +37,13 @@ describe('createGate', () => {
     expect(createGate('a', 'cmd', 'fast').tier).toBe('fast');
     expect(createGate('b', 'cmd', 'slow').tier).toBe('slow');
     expect(createGate('c', 'cmd', 'ci').tier).toBe('ci');
+  });
+
+  it('throws when tier is invalid', () => {
+    const invalidTier = 'invalid' as GateTier;
+    expect(() => createGate('lint', 'eslint .', invalidTier)).toThrow(
+      "Invalid gate tier 'invalid'. Must be one of: fast, slow, ci.",
+    );
   });
 });
 
