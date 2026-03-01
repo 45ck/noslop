@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Rust
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    cargo fmt --check && cargo clippy -- -D warnings
+    ;;
+  slow)
+    cargo test
+    ;;
+  ci)
+    cargo fmt --check && cargo clippy -- -D warnings && cargo test
+    ;;
+  *)
+    echo "Unknown tier: $TIER (use fast|slow|ci)" >&2
+    exit 1
+    ;;
+esac

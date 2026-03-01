@@ -1,0 +1,74 @@
+import { describe, expect, it } from 'vitest';
+import { doctor } from './doctor-use-case.js';
+import { InMemoryFilesystem } from '../../infrastructure/adapters/in-memory-filesystem.js';
+import { InMemoryProcessRunner } from '../../infrastructure/adapters/in-memory-process-runner.js';
+
+describe('doctor use case', () => {
+  it('reports healthy when all required files exist and hooks are configured', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/target/.githooks/pre-commit', '#!/bin/sh');
+    fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
+    fs.seed('/target/.claude/settings.json', '{}');
+    fs.seed('/target/AGENTS.md', '# Agents');
+    const runner = new InMemoryProcessRunner({
+      'git config core.hooksPath': 0,
+    });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    expect(result.healthy).toBe(true);
+    expect(result.checks.every((c) => c.passed)).toBe(true);
+  });
+
+  it('reports unhealthy when hooks path is not set', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/target/.githooks/pre-commit', '#!/bin/sh');
+    fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
+    fs.seed('/target/.claude/settings.json', '{}');
+    fs.seed('/target/AGENTS.md', '# Agents');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 1 });
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    expect(result.healthy).toBe(false);
+    const check = result.checks.find((c) => c.name === 'git core.hooksPath');
+    expect(check?.passed).toBe(false);
+  });
+
+  it('reports unhealthy when .githooks directory is missing', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
+    fs.seed('/target/.claude/settings.json', '{}');
+    fs.seed('/target/AGENTS.md', '# Agents');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    expect(result.healthy).toBe(false);
+    const check = result.checks.find((c) => c.name === '.githooks directory');
+    expect(check?.passed).toBe(false);
+  });
+
+  it('reports unhealthy when quality.yml is missing', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/target/.githooks/pre-commit', '#!/bin/sh');
+    fs.seed('/target/.claude/settings.json', '{}');
+    fs.seed('/target/AGENTS.md', '# Agents');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    expect(result.healthy).toBe(false);
+    const check = result.checks.find((c) => c.name === '.github/workflows/quality.yml');
+    expect(check?.passed).toBe(false);
+  });
+
+  it('includes detail messages for all checks', async () => {
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 1 });
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    for (const checkItem of result.checks) {
+      expect(checkItem.detail.length).toBeGreaterThan(0);
+    }
+  });
+});

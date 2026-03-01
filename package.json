@@ -1,0 +1,80 @@
+{
+  "name": "@45ck/noslop",
+  "version": "0.1.0",
+  "description": "Enforcement-first quality gate installer. Drops pre-commit hooks, CI gates, and agent guardrails into any TypeScript, Rust, or C# repo.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "bin": {
+    "noslop": "./dist/presentation/cli.js"
+  },
+  "files": [
+    "dist/**",
+    "templates/**"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "spell": "cspell --no-progress --config cspell.json \"{src,templates,docs}/**/*\" \"*.md\"",
+    "knip": "knip --production",
+    "depcruise": "dependency-cruiser --config .dependency-cruiser.cjs --validate --output-type err src",
+    "depgraph": "dependency-cruiser --config .dependency-cruiser.cjs --output-type mermaid src --output-to reports/dependency-graph.mmd",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "mutation": "stryker run",
+    "audit:high": "node scripts/ci/audit-high.mjs",
+    "start": "node dist/presentation/cli.js",
+    "ci": "npm run typecheck && npm run lint && npm run format:check && npm run spell && npm run depcruise && npm run knip && npm run test:coverage && npm run audit:high",
+    "ci:nightly": "npm run ci && npm run mutation",
+    "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath .githooks || true"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs}": [
+      "eslint --fix",
+      "prettier --write",
+      "cspell --no-progress --config cspell.json"
+    ],
+    "*.{md,mdx,json,yml,yaml}": [
+      "prettier --write",
+      "cspell --no-progress --config cspell.json"
+    ]
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@stryker-mutator/core": "^9.4.0",
+    "@stryker-mutator/typescript-checker": "^9.4.0",
+    "@stryker-mutator/vitest-runner": "^9.4.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.0.0",
+    "cspell": "^9.6.0",
+    "dependency-cruiser": "^17.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-import-resolver-typescript": "^4.0.0",
+    "eslint-plugin-eslint-comments": "^3.2.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^17.0.0",
+    "eslint-plugin-sonarjs": "^3.0.0",
+    "eslint-plugin-unicorn": "^63.0.0",
+    "eslint-plugin-unused-imports": "^4.0.0",
+    "globals": "^17.0.0",
+    "husky": "^9.0.0",
+    "knip": "^5.0.0",
+    "lint-staged": "^16.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}

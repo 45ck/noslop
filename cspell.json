@@ -1,0 +1,38 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "dictionaries": ["en_US", "typescript", "node", "npm", "project-words"],
+  "dictionaryDefinitions": [
+    {
+      "name": "project-words",
+      "path": "./.cspell/project-words.txt",
+      "addWords": true
+    }
+  ],
+  "words": [
+    "behaviour",
+    "clippy",
+    "depcruise",
+    "dotnet",
+    "guardrail",
+    "guardrails",
+    "knip",
+    "negotiables",
+    "noslop",
+    "slopguard",
+    "stderrs",
+    "stdouts",
+    "stryker",
+    "tsconfig",
+    "vitest",
+    "warnaserror"
+  ],
+  "ignorePaths": [
+    "dist/**",
+    "coverage/**",
+    "reports/**",
+    "node_modules/**",
+    "package-lock.json",
+    "templates/**"
+  ]
+}

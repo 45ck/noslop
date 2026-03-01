@@ -1,0 +1,5 @@
+dist
+coverage
+reports
+.tsbuildinfo
+node_modules
