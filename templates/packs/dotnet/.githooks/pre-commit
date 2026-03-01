@@ -1,0 +1,9 @@
+#!/bin/sh
+# noslop pre-commit: fast gates (format check)
+set -e
+
+if command -v noslop >/dev/null 2>&1; then
+  noslop check --tier=fast
+else
+  dotnet format --verify-no-changes
+fi

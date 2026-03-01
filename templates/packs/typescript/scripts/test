@@ -1,0 +1,3 @@
+#!/bin/sh
+# noslop test — run test suite
+npm run test

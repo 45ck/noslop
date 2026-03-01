@@ -1,0 +1,9 @@
+#!/bin/sh
+# noslop pre-push: slow gates (build, tests)
+set -e
+
+if command -v noslop >/dev/null 2>&1; then
+  noslop check --tier=slow
+else
+  dotnet build /warnaserror && dotnet test
+fi

@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for .NET
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    dotnet format --verify-no-changes
+    ;;
+  slow)
+    dotnet build /warnaserror && dotnet test
+    ;;
+  ci)
+    dotnet format --verify-no-changes && dotnet build /warnaserror && dotnet test
+    ;;
+  *)
+    echo "Unknown tier: $TIER (use fast|slow|ci)" >&2
+    exit 1
+    ;;
+esac

@@ -1,0 +1,48 @@
+{
+  "repo_name": "vibe-ts",
+  "tagline": "Quality-first TypeScript, built for AI",
+  "one_sentence_purpose": "A TypeScript project template with DDD architecture, enforced layer boundaries, mutation testing, and AI-assistant guardrails for vibe coding without sacrificing quality.",
+  "target_users": "TypeScript developers who use AI coding assistants and want architectural discipline baked in from day one",
+  "keywords": ["typescript", "template", "ddd", "quality", "ai-assisted", "mutation-testing"],
+  "visual_metaphors": [
+    "concentric circles representing DDD layers (domain at center, infrastructure at outer ring)",
+    "a tuning fork emitting clean sine waves symbolizing quality vibrations",
+    "architectural blueprint with glowing boundary lines"
+  ],
+  "avoid": ["no mascots", "no photorealism", "no clip art", "no gradients that look dated"],
+  "style_adjectives": ["clean", "minimal", "precise", "architectural", "modern"],
+  "palette_hint": {
+    "bg_light": "#ffffff",
+    "bg_dark": "#0d1117",
+    "primary": "#3178c6",
+    "accent": "#f0db4f",
+    "ink": "#c9d1d9"
+  },
+  "assets_needed": [
+    {
+      "path": "assets/banner.light.png",
+      "type": "readme_banner",
+      "desc": "Wide banner on white background with concentric DDD layer rings and project name in TypeScript blue"
+    },
+    {
+      "path": "assets/banner.dark.png",
+      "type": "readme_banner",
+      "desc": "Wide banner on dark background with concentric DDD layer rings and project name in TypeScript blue"
+    },
+    {
+      "path": "assets/logo.light.png",
+      "type": "square_logo",
+      "desc": "Square logo on white background featuring a tuning fork integrated with TypeScript brackets"
+    },
+    {
+      "path": "assets/logo.dark.png",
+      "type": "square_logo",
+      "desc": "Square logo on dark background featuring a tuning fork integrated with TypeScript brackets"
+    },
+    {
+      "path": "assets/social-preview.png",
+      "type": "github_social_preview",
+      "desc": "GitHub social preview card with tagline, DDD layer diagram, and TypeScript blue palette"
+    }
+  ]
+}
