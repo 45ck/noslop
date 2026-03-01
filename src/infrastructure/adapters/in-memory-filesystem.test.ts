@@ -76,4 +76,9 @@ describe('InMemoryFilesystem', () => {
     await fs.mkdir('/created');
     expect(await fs.isDirectory('/created')).toBe(true);
   });
+
+  it('readdir throws for non-existent path', async () => {
+    const fs = new InMemoryFilesystem();
+    await expect(fs.readdir('/nonexistent')).rejects.toThrow('Directory not found: /nonexistent');
+  });
 });

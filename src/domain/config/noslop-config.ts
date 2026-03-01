@@ -6,13 +6,13 @@ export type NoslopConfig = Readonly<{
 }>;
 
 export function createConfig(
-  packs: readonly PackId[],
+  packs: readonly string[],
   protectedPaths: readonly string[],
 ): NoslopConfig {
   if (packs.length === 0) {
     throw new Error('NoslopConfig must include at least one pack.');
   }
-  return { packs, protectedPaths };
+  return { packs: packs as PackId[], protectedPaths };
 }
 
 export const DEFAULT_PROTECTED_PATHS: readonly string[] = [

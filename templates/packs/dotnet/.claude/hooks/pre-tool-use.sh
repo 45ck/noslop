@@ -5,7 +5,8 @@ INPUT=$(cat)
 if command -v jq >/dev/null 2>&1; then
   COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 else
-  COMMAND=$(echo "$INPUT" | grep -o '"command":"[^"]*"' | head -1 | cut -d'"' -f4)
+  echo '{"decision":"block","reason":"noslop: jq is required for hook security parsing. Install jq."}'
+  exit 0
 fi
 
 if echo "$COMMAND" | grep -qF -- '--no-verify'; then

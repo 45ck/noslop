@@ -32,7 +32,11 @@ export async function check(command: CheckCommand, runner: IProcessRunner): Prom
       try {
         result = await runner.run(gate.command, command.targetDir);
       } catch (err) {
-        result = { exitCode: 1, stdout: '', stderr: String(err) };
+        result = {
+          exitCode: 1,
+          stdout: '',
+          stderr: err instanceof Error ? err.message : String(err),
+        };
       }
       outcomes.push({
         label: gate.label,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createGate } from '../gate/gate.js';
-import { createPack, packGates } from './pack.js';
+import { createPack } from './pack.js';
 
 describe('createPack', () => {
   const gates = [createGate('lint', 'eslint .', 'fast'), createGate('test', 'vitest run', 'slow')];
@@ -33,12 +33,14 @@ describe('createPack', () => {
       "Pack 'empty' must define at least one gate.",
     );
   });
-});
 
-describe('packGates', () => {
-  it('returns the gates array', () => {
-    const gates = [createGate('fmt', 'cargo fmt', 'fast')];
-    const pack = createPack('rust', 'Rust', gates);
-    expect(packGates(pack)).toEqual(pack.gates);
+  it('throws when gate labels are duplicated', () => {
+    const dupeGates = [
+      createGate('lint', 'eslint .', 'fast'),
+      createGate('lint', 'eslint src/', 'slow'),
+    ];
+    expect(() => createPack('ts', 'TypeScript', dupeGates)).toThrow(
+      "Pack 'ts' has duplicate gate labels: lint.",
+    );
   });
 });

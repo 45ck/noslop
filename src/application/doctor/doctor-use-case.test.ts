@@ -79,6 +79,18 @@ describe('doctor use case', () => {
     expect(check?.passed).toBe(false);
   });
 
+  it('reports unhealthy when git config exits 0 but stdout is empty', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    expect(result.healthy).toBe(false);
+    const check = result.checks.find((c) => c.name === 'git core.hooksPath');
+    expect(check?.passed).toBe(false);
+    expect(check?.detail).toContain('empty');
+  });
+
   it('includes detail messages for all checks', async () => {
     const fs = new InMemoryFilesystem();
     const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 1 });

@@ -20,6 +20,14 @@ export class NodeProcessRunner implements IProcessRunner {
       proc.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
       proc.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
 
+      proc.on('error', (err) => {
+        resolve({
+          exitCode: 1,
+          stdout: Buffer.concat(stdoutChunks).toString('utf8'),
+          stderr: err.message,
+        });
+      });
+
       proc.on('close', (code) => {
         resolve({
           exitCode: code ?? 1,

@@ -27,16 +27,22 @@ export async function doctor(
   try {
     hooksPathResult = await runner.run('git config core.hooksPath', command.targetDir);
   } catch (err) {
-    hooksPathResult = { exitCode: 1, stdout: '', stderr: String(err) };
+    hooksPathResult = {
+      exitCode: 1,
+      stdout: '',
+      stderr: err instanceof Error ? err.message : String(err),
+    };
   }
   const hooksPath = hooksPathResult.stdout.replace(/\r?\n$/, '').trim();
   checks.push({
     name: 'git core.hooksPath',
     passed: hooksPathResult.exitCode === 0 && hooksPath.length > 0,
     detail:
-      hooksPathResult.exitCode === 0
+      hooksPathResult.exitCode === 0 && hooksPath.length > 0
         ? `core.hooksPath = ${hooksPath}`
-        : 'core.hooksPath not set — run: noslop init',
+        : hooksPathResult.exitCode === 0
+          ? 'core.hooksPath is empty — run: noslop init'
+          : 'core.hooksPath not set — run: noslop init',
   });
 
   const hooksDir = `${command.targetDir}/.githooks`;
