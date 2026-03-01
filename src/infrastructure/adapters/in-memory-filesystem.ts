@@ -60,6 +60,10 @@ export class InMemoryFilesystem implements IFilesystem {
     return this.dirs.has(path) || [...this.files.keys()].some((f) => f.startsWith(`${path}/`));
   }
 
+  async chmod(_path: string, _mode: number): Promise<void> {
+    // no-op: in-memory filesystem has no real permissions
+  }
+
   private ensureParentDirs(path: string): void {
     const parts = path.split('/');
     for (let i = 1; i < parts.length - 1; i++) {

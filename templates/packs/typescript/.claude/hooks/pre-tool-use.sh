@@ -3,23 +3,33 @@
 # Receives tool call JSON on stdin
 
 INPUT=$(cat)
-TOOL=$(echo "$INPUT" | grep -o '"tool_name":"[^"]*"' | cut -d'"' -f4)
-COMMAND=$(echo "$INPUT" | grep -o '"command":"[^"]*"' | cut -d'"' -f4)
 
-# Block --no-verify
-if echo "$COMMAND" | grep -q -- '--no-verify'; then
+# Extract command using jq for robust JSON parsing (handles escaped quotes correctly).
+# Falls back to empty string if jq is unavailable or field is absent.
+if command -v jq >/dev/null 2>&1; then
+  COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+else
+  COMMAND=$(echo "$INPUT" | grep -o '"command":"[^"]*"' | head -1 | cut -d'"' -f4)
+fi
+
+# Block --no-verify (matches flag anywhere in command string)
+if echo "$COMMAND" | grep -qF -- '--no-verify'; then
   echo '{"decision":"block","reason":"noslop: --no-verify bypasses pre-commit hooks. Fix the underlying issue instead."}'
   exit 0
 fi
 
 # Block SKIP_CI env var tricks
-if echo "$COMMAND" | grep -qi 'SKIP_CI\|skip_ci\|\[skip ci\]'; then
+if echo "$COMMAND" | grep -qiF 'SKIP_CI'; then
+  echo '{"decision":"block","reason":"noslop: CI-skip patterns are not allowed."}'
+  exit 0
+fi
+if echo "$COMMAND" | grep -qF '[skip ci]'; then
   echo '{"decision":"block","reason":"noslop: CI-skip patterns are not allowed."}'
   exit 0
 fi
 
 # Block ESLint flag tampering
-if echo "$COMMAND" | grep -q 'eslint' && echo "$COMMAND" | grep -q -- '--no-eslintrc\|--rule.*off'; then
+if echo "$COMMAND" | grep -qF 'eslint' && echo "$COMMAND" | grep -qF -- '--no-eslintrc'; then
   echo '{"decision":"block","reason":"noslop: disabling ESLint rules via CLI flags is not allowed."}'
   exit 0
 fi

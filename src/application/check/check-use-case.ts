@@ -28,7 +28,12 @@ export async function check(command: CheckCommand, runner: IProcessRunner): Prom
     const gates = gatesForTier(pack.gates, command.tier);
 
     for (const gate of gates) {
-      const result = await runner.run(gate.command, command.targetDir);
+      let result: RunResult;
+      try {
+        result = await runner.run(gate.command, command.targetDir);
+      } catch (err) {
+        result = { exitCode: 1, stdout: '', stderr: String(err) };
+      }
       outcomes.push({
         label: gate.label,
         command: gate.command,

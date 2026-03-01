@@ -3,6 +3,10 @@ import type { IProcessRunner, RunResult } from '../../application/ports/process-
 
 export class NodeProcessRunner implements IProcessRunner {
   async run(command: string, cwd?: string): Promise<RunResult> {
+    // shell:true is required because pack gate commands contain shell operators (&&, pipes).
+    // Commands come exclusively from hardcoded pack definitions — never from user input —
+    // so there is no command-injection surface here. Do not pass user-supplied strings
+    // directly to this method without sanitization.
     return new Promise((resolve) => {
       const proc = spawn(command, {
         cwd,

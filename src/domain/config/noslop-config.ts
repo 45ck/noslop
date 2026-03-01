@@ -9,6 +9,9 @@ export function createConfig(
   packs: readonly PackId[],
   protectedPaths: readonly string[],
 ): NoslopConfig {
+  if (packs.length === 0) {
+    throw new Error('NoslopConfig must include at least one pack.');
+  }
   return { packs, protectedPaths };
 }
 
@@ -17,4 +20,8 @@ export const DEFAULT_PROTECTED_PATHS: readonly string[] = [
   '.github/workflows/**',
   '.claude/settings.json',
   '.claude/hooks/**',
+  'node_modules/**',
+  '.git/**',
+  'dist/**',
+  'build/**',
 ];

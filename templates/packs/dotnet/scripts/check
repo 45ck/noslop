@@ -13,7 +13,7 @@ case "$TIER" in
     dotnet format --verify-no-changes && dotnet build /warnaserror && dotnet test
     ;;
   *)
-    echo "Unknown tier: $TIER (use fast|slow|ci)" >&2
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
     exit 1
     ;;
 esac

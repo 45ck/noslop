@@ -27,7 +27,7 @@ export async function init(
     const exists = await fs.exists(packTemplateDir);
     if (!exists) continue;
 
-    const written = await copyTemplateDir(packTemplateDir, command.targetDir, packTemplateDir, fs);
+    const written = await copyTemplateDir(packTemplateDir, command.targetDir, '', fs);
     filesWritten.push(...written);
   }
 
@@ -36,8 +36,12 @@ export async function init(
   let hooksConfigured = false;
 
   if (hooksExist) {
-    const result = await runner.run('git config core.hooksPath .githooks', command.targetDir);
-    hooksConfigured = result.exitCode === 0;
+    try {
+      const result = await runner.run('git config core.hooksPath .githooks', command.targetDir);
+      hooksConfigured = result.exitCode === 0;
+    } catch {
+      hooksConfigured = false;
+    }
   }
 
   return { filesWritten, hooksConfigured };
@@ -46,7 +50,7 @@ export async function init(
 async function copyTemplateDir(
   templateDir: string,
   targetDir: string,
-  baseDir: string,
+  relativePrefix: string,
   fs: IFilesystem,
 ): Promise<string[]> {
   const written: string[] = [];
@@ -54,18 +58,21 @@ async function copyTemplateDir(
 
   for (const entry of entries) {
     const srcPath = `${templateDir}/${entry}`;
-    const relativePath = srcPath.replace(`${baseDir}/`, '');
-    const destPath = `${targetDir}/${relativePath}`;
+    const relPath = relativePrefix ? `${relativePrefix}/${entry}` : entry;
+    const destPath = `${targetDir}/${relPath}`;
 
     const isDir = await fs.isDirectory(srcPath);
     if (isDir) {
       await fs.mkdir(destPath, { recursive: true });
-      const subWritten = await copyTemplateDir(srcPath, targetDir, baseDir, fs);
+      const subWritten = await copyTemplateDir(srcPath, targetDir, relPath, fs);
       written.push(...subWritten);
     } else {
-      const destDirPath = destPath.slice(0, destPath.lastIndexOf('/'));
-      await fs.mkdir(destDirPath, { recursive: true });
+      const lastSlash = destPath.lastIndexOf('/');
+      if (lastSlash > 0) {
+        await fs.mkdir(destPath.slice(0, lastSlash), { recursive: true });
+      }
       await fs.copyFile(srcPath, destPath);
+      await fs.chmod(destPath, 0o755);
       written.push(destPath);
     }
   }

@@ -41,6 +41,10 @@ export class NodeFilesystem implements IFilesystem {
       return false;
     }
   }
+
+  async chmod(filePath: string, mode: number): Promise<void> {
+    await fsp.chmod(filePath, mode);
+  }
 }
 
 export function resolveTemplatesDir(): string {

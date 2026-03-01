@@ -6,4 +6,5 @@ export interface IFilesystem {
   copyFile(src: string, dest: string): Promise<void>;
   readdir(path: string): Promise<string[]>;
   isDirectory(path: string): Promise<boolean>;
+  chmod(path: string, mode: number): Promise<void>;
 }

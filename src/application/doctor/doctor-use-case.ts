@@ -23,8 +23,13 @@ export async function doctor(
 ): Promise<DoctorResult> {
   const checks: DoctorCheck[] = [];
 
-  const hooksPathResult = await runner.run('git config core.hooksPath', command.targetDir);
-  const hooksPath = hooksPathResult.stdout.trim();
+  let hooksPathResult;
+  try {
+    hooksPathResult = await runner.run('git config core.hooksPath', command.targetDir);
+  } catch (err) {
+    hooksPathResult = { exitCode: 1, stdout: '', stderr: String(err) };
+  }
+  const hooksPath = hooksPathResult.stdout.replace(/\r?\n$/, '').trim();
   checks.push({
     name: 'git core.hooksPath',
     passed: hooksPathResult.exitCode === 0 && hooksPath.length > 0,
@@ -58,6 +63,16 @@ export async function doctor(
     detail: claudeExists
       ? '.claude/settings.json present'
       : '.claude/settings.json missing — run: noslop init',
+  });
+
+  const claudeHooks = `${command.targetDir}/.claude/hooks`;
+  const claudeHooksExists = await fs.exists(claudeHooks);
+  checks.push({
+    name: '.claude/hooks directory',
+    passed: claudeHooksExists,
+    detail: claudeHooksExists
+      ? '.claude/hooks/ present'
+      : '.claude/hooks/ missing — run: noslop init',
   });
 
   const agentsMd = `${command.targetDir}/AGENTS.md`;

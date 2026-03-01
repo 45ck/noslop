@@ -108,6 +108,11 @@ program
       ? ALL_PACKS.filter((p) => p.id === options.pack)
       : await detectPacks(targetDir, fs);
 
+    if (packs.length === 0) {
+      console.error(`noslop install: unknown pack '${options.pack ?? ''}'`);
+      process.exit(1);
+    }
+
     const config = createConfig(
       packs.map((p) => p.id),
       [...DEFAULT_PROTECTED_PATHS],
@@ -129,6 +134,12 @@ program
     const fs = new NodeFilesystem();
     const runner = new NodeProcessRunner();
     const targetDir = options.dir;
+
+    const validTiers: GateTier[] = ['fast', 'slow', 'ci'];
+    if (!validTiers.includes(options.tier as GateTier)) {
+      console.error(chalk.red(`Unknown tier: '${options.tier}' — use fast, slow, or ci`));
+      process.exit(1);
+    }
     const tier = options.tier as GateTier;
 
     const packs = options.pack
