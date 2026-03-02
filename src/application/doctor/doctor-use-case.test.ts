@@ -21,6 +21,15 @@ describe('doctor use case', () => {
     const result = await doctor({ targetDir: '/target' }, fs, runner);
     expect(result.healthy).toBe(true);
     expect(result.checks.every((c) => c.passed)).toBe(true);
+
+    const hooksPathCheck = result.checks.find((c) => c.name === 'git core.hooksPath');
+    expect(hooksPathCheck?.detail).toBe('core.hooksPath = .githooks');
+
+    const hooksDirCheck = result.checks.find((c) => c.name === '.githooks directory');
+    expect(hooksDirCheck?.detail).toContain('.githooks');
+
+    const ciCheck = result.checks.find((c) => c.name === '.github/workflows/quality.yml');
+    expect(ciCheck?.detail).toContain('quality.yml present');
   });
 
   it('reports unhealthy when hooks path is not set', async () => {
@@ -32,6 +41,8 @@ describe('doctor use case', () => {
     expect(result.healthy).toBe(false);
     const check = result.checks.find((c) => c.name === 'git core.hooksPath');
     expect(check?.passed).toBe(false);
+    expect(check?.detail).toContain('run: noslop init');
+    expect(check?.detail).toContain('not set');
   });
 
   it('reports unhealthy when .githooks directory is missing', async () => {
@@ -47,6 +58,8 @@ describe('doctor use case', () => {
     expect(result.healthy).toBe(false);
     const check = result.checks.find((c) => c.name === '.githooks directory');
     expect(check?.passed).toBe(false);
+    expect(check?.detail).toContain('run: noslop init');
+    expect(check?.detail).toContain('.githooks');
   });
 
   it('reports unhealthy when quality.yml is missing', async () => {
@@ -62,6 +75,8 @@ describe('doctor use case', () => {
     expect(result.healthy).toBe(false);
     const check = result.checks.find((c) => c.name === '.github/workflows/quality.yml');
     expect(check?.passed).toBe(false);
+    expect(check?.detail).toContain('run: noslop init');
+    expect(check?.detail).toContain('quality.yml');
   });
 
   it('reports unhealthy when .claude/hooks directory is missing (MIS3)', async () => {
@@ -77,6 +92,7 @@ describe('doctor use case', () => {
     expect(result.healthy).toBe(false);
     const check = result.checks.find((c) => c.name === '.claude/hooks directory');
     expect(check?.passed).toBe(false);
+    expect(check?.detail).toContain('run: noslop init');
   });
 
   it('reports unhealthy when git config exits 0 but stdout is empty', async () => {
@@ -89,6 +105,7 @@ describe('doctor use case', () => {
     const check = result.checks.find((c) => c.name === 'git core.hooksPath');
     expect(check?.passed).toBe(false);
     expect(check?.detail).toContain('empty');
+    expect(check?.detail).toContain('run: noslop init');
   });
 
   it('includes detail messages for all checks', async () => {
@@ -112,5 +129,44 @@ describe('doctor use case', () => {
     const result = await doctor({ targetDir: '/target' }, fs, throwingRunner);
     const check = result.checks.find((c) => c.name === 'git core.hooksPath');
     expect(check?.passed).toBe(false);
+  });
+
+  it('healthy is false when at least one check fails', async () => {
+    const fs = new InMemoryFilesystem();
+    // seed everything except .githooks so exactly one check fails
+    fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
+    fs.seed('/target/.claude/settings.json', '{}');
+    fs.seed('/target/.claude/hooks/pre-tool-use.sh', '#!/bin/sh');
+    fs.seed('/target/AGENTS.md', '# Agents');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    expect(result.healthy).toBe(false);
+    // healthy must derive from the checks array — all-pass → true, one-fail → false
+    expect(result.checks.every((c) => c.passed)).toBe(false);
+  });
+
+  it('passing hooksPath check detail contains exact hooksPath value', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    const check = result.checks.find((c) => c.name === 'git core.hooksPath');
+    // Exact string: ensures the ternary true-branch is exercised and not collapsed
+    expect(check?.detail).toBe('core.hooksPath = .githooks');
+  });
+
+  it('failing hooksPath check detail never contains the passing prefix', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 1 });
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    const check = result.checks.find((c) => c.name === 'git core.hooksPath');
+    // Must NOT contain the success phrase — guards the false-branch
+    expect(check?.detail).not.toContain('core.hooksPath =');
   });
 });

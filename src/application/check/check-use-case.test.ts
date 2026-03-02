@@ -89,6 +89,25 @@ describe('check use case', () => {
     const result = await check(makeCommand({ packs: [pack], tier: 'fast' }), throwingRunner);
     expect(result.passed).toBe(false);
     expect(result.outcomes[0]?.result.exitCode).toBe(1);
-    expect(result.outcomes[0]?.result.stderr).toContain('spawn ENOENT');
+    // stderr must be exactly the Error message — no "Error: " prefix — killing the
+    // `err instanceof Error` branch mutant (if branch were removed, String(err) would
+    // produce "Error: spawn ENOENT" which does NOT equal the bare message).
+    expect(result.outcomes[0]?.result.stderr).toBe('spawn ENOENT');
+    expect(result.outcomes[0]?.result.stderr).not.toContain('Error:');
+  });
+
+  it('records failure with stderr when runner throws a non-Error value', async () => {
+    const pack = createPack('ts', 'TS', [createGate('lint', 'eslint .', 'fast')]);
+    const throwingRunner = {
+      run: async () => {
+        throw 'plain string error';
+      },
+    };
+
+    const result = await check(makeCommand({ packs: [pack], tier: 'fast' }), throwingRunner);
+    expect(result.passed).toBe(false);
+    expect(result.outcomes[0]?.result.exitCode).toBe(1);
+    // When thrown value is not an Error, String(value) is used directly
+    expect(result.outcomes[0]?.result.stderr).toBe('plain string error');
   });
 });

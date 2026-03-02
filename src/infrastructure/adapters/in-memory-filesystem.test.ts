@@ -7,6 +7,11 @@ describe('InMemoryFilesystem', () => {
     expect(await fs.exists('/unknown')).toBe(false);
   });
 
+  it('returns false for exists on a path that was never seeded or written', async () => {
+    const fs = new InMemoryFilesystem();
+    expect(await fs.exists('/never/written/file.txt')).toBe(false);
+  });
+
   it('returns true for exists on seeded file', async () => {
     const fs = new InMemoryFilesystem();
     fs.seed('/a/b.txt', 'hello');
@@ -43,6 +48,14 @@ describe('InMemoryFilesystem', () => {
     expect(await fs.readFile('/dest/file.txt')).toBe('data');
   });
 
+  it('copyFile copies content exactly — dest content matches src content byte-for-byte', async () => {
+    const fs = new InMemoryFilesystem();
+    const content = '#!/bin/sh\nnoslop check\nexit $?\n';
+    fs.seed('/src/hook', content);
+    await fs.copyFile('/src/hook', '/dest/hook');
+    expect(await fs.readFile('/dest/hook')).toBe(content);
+  });
+
   it('copyFile throws when source does not exist', async () => {
     const fs = new InMemoryFilesystem();
     await expect(fs.copyFile('/missing.txt', '/dest.txt')).rejects.toThrow(
@@ -57,6 +70,35 @@ describe('InMemoryFilesystem', () => {
     const entries = await fs.readdir('/dir');
     expect(entries).toContain('a.txt');
     expect(entries).toContain('b.txt');
+  });
+
+  it('readdir returns only immediate children, not deeper descendants', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/dir/child.txt', 'c');
+    fs.seed('/dir/sub/grandchild.txt', 'g');
+    const entries = await fs.readdir('/dir');
+    expect(entries).toContain('child.txt');
+    expect(entries).toContain('sub');
+    expect(entries).not.toContain('grandchild.txt');
+    expect(entries).toHaveLength(2);
+  });
+
+  it('readdir returns both a file child and a directory child at the same level', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/base/file.txt', 'f');
+    fs.seed('/base/subdir/nested.txt', 'n');
+    const entries = await fs.readdir('/base');
+    expect(entries).toContain('file.txt');
+    expect(entries).toContain('subdir');
+    expect(entries).toHaveLength(2);
+  });
+
+  it('readdir does not return entries from sibling directories', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/a/file1.txt', '1');
+    fs.seed('/b/file2.txt', '2');
+    const entries = await fs.readdir('/a');
+    expect(entries).toEqual(['file1.txt']);
   });
 
   it('isDirectory returns false for a file', async () => {
@@ -77,8 +119,26 @@ describe('InMemoryFilesystem', () => {
     expect(await fs.isDirectory('/created')).toBe(true);
   });
 
+  it('isDirectory returns true for a path that has file children but was never explicitly mkdir-d', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/implicit/dir/file.txt', 'x');
+    // '/implicit/dir' was never passed to mkdir but has a file child
+    expect(await fs.isDirectory('/implicit/dir')).toBe(true);
+  });
+
+  it('isDirectory returns false for an unknown path with no children', async () => {
+    const fs = new InMemoryFilesystem();
+    expect(await fs.isDirectory('/ghost')).toBe(false);
+  });
+
   it('readdir throws for non-existent path', async () => {
     const fs = new InMemoryFilesystem();
     await expect(fs.readdir('/nonexistent')).rejects.toThrow('Directory not found: /nonexistent');
+  });
+
+  it('exists returns false for a path that has never been seeded, written, or mkdir-d', async () => {
+    const fs = new InMemoryFilesystem();
+    const result = await fs.exists('/completely/unknown/path');
+    expect(result).toBe(false);
   });
 });

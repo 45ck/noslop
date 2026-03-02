@@ -24,7 +24,14 @@ describe('init use case', () => {
     const fs = new InMemoryFilesystem();
     const runner = new InMemoryProcessRunner();
     const result = await init(makeCommand(), fs, runner);
-    expect(result.filesWritten).toHaveLength(0);
+    expect(result.filesWritten).toEqual([]);
+  });
+
+  it('returns hooksConfigured false when no packs provided', async () => {
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const result = await init(makeCommand(), fs, runner);
+    expect(result.hooksConfigured).toBe(false);
   });
 
   it('skips packs whose template directory does not exist', async () => {
@@ -32,7 +39,7 @@ describe('init use case', () => {
     const fs = new InMemoryFilesystem();
     const runner = new InMemoryProcessRunner();
     const result = await init(makeCommand({ packs: [pack] }), fs, runner);
-    expect(result.filesWritten).toHaveLength(0);
+    expect(result.filesWritten).toEqual([]);
   });
 
   it('copies template files when pack template directory exists', async () => {
@@ -44,7 +51,18 @@ describe('init use case', () => {
 
     const result = await init(makeCommand({ packs: [pack] }), fs, runner);
 
-    expect(result.filesWritten.length).toBeGreaterThan(0);
+    expect(result.filesWritten).toEqual(['/target/.githooks/pre-commit', '/target/AGENTS.md']);
+  });
+
+  it('writes files to paths rooted at targetDir using exact pack template paths', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/AGENTS.md', '# Agents');
+    const runner = new InMemoryProcessRunner();
+
+    const result = await init(makeCommand({ packs: [pack] }), fs, runner);
+
+    expect(result.filesWritten).toEqual(['/target/AGENTS.md']);
   });
 
   it('copies nested template files to correct target paths (MIS2)', async () => {
@@ -57,10 +75,13 @@ describe('init use case', () => {
 
     const result = await init(makeCommand({ packs: [pack] }), fs, runner);
 
-    const paths = result.filesWritten;
-    expect(paths).toContain('/target/.githooks/pre-commit');
-    expect(paths).toContain('/target/.github/workflows/quality.yml');
-    expect(paths).toContain('/target/scripts/check');
+    expect([...result.filesWritten].sort()).toEqual(
+      [
+        '/target/.github/workflows/quality.yml',
+        '/target/.githooks/pre-commit',
+        '/target/scripts/check',
+      ].sort(),
+    );
   });
 
   it('configures git hooks when .githooks exists in target', async () => {
@@ -71,6 +92,26 @@ describe('init use case', () => {
 
     const result = await init(makeCommand({ packs: [pack] }), fs, runner);
     expect(result.hooksConfigured).toBe(true);
+  });
+
+  it('runs exactly the git config core.hooksPath .githooks command with targetDir as cwd', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/.githooks/pre-commit', '#!/bin/sh');
+
+    const calls: { command: string; cwd: string | undefined }[] = [];
+    const spyRunner = {
+      run: async (command: string, cwd?: string) => {
+        calls.push({ command, cwd });
+        return { exitCode: 0, stdout: '', stderr: '' };
+      },
+    };
+
+    await init(makeCommand({ packs: [pack] }), fs, spyRunner);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.command).toBe('git config core.hooksPath .githooks');
+    expect(calls[0]?.cwd).toBe('/target');
   });
 
   it('reports hooksConfigured false when git command fails', async () => {
@@ -96,5 +137,26 @@ describe('init use case', () => {
 
     const result = await init(makeCommand({ packs: [pack] }), fs, throwingRunner);
     expect(result.hooksConfigured).toBe(false);
+  });
+
+  it('reports hooksConfigured false when no .githooks dir in template', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/AGENTS.md', '# Agents');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath .githooks': 0 });
+
+    const result = await init(makeCommand({ packs: [pack] }), fs, runner);
+    expect(result.hooksConfigured).toBe(false);
+  });
+
+  it('handles a nested directory entry — nested file appears in filesWritten at correct path', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/subdir/deep/file.txt', 'contents');
+    const runner = new InMemoryProcessRunner();
+
+    const result = await init(makeCommand({ packs: [pack] }), fs, runner);
+
+    expect(result.filesWritten).toEqual(['/target/subdir/deep/file.txt']);
   });
 });
