@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    vendor/bin/php-cs-fixer check . && vendor/bin/phpstan analyse && typos
+    vendor/bin/php-cs-fixer check . && vendor/bin/phpstan analyse && vendor/bin/phpmd . xml phpmd.xml && typos
     ;;
   slow)
     vendor/bin/phpunit
     ;;
   ci)
-    vendor/bin/php-cs-fixer check . && vendor/bin/phpstan analyse && typos && vendor/bin/phpunit
+    vendor/bin/php-cs-fixer check . && vendor/bin/phpstan analyse && vendor/bin/phpmd . xml phpmd.xml && typos && vendor/bin/phpunit
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

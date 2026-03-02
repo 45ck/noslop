@@ -11,13 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install -y clang-format cppcheck cmake
+      - run: sudo apt-get install -y clang-format cppcheck cmake clang-tidy
       - name: Install typos
         uses: taiki-e/install-action@v2
         with:
           tool: typos-cli
-      - run: find . -name "*.c" -o -name "*.cpp" -o -name "*.h" | xargs clang-format --dry-run --Werror
+      - run: find . \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) -not -path "*/build/*" | xargs clang-format --dry-run --Werror
       - run: cppcheck --error-exitcode=1 --quiet .
       - run: typos
-      - run: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+      - run: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release && cmake --build build
+      - run: run-clang-tidy -p build -quiet
       - run: ctest --test-dir build --output-on-failure

@@ -27,9 +27,32 @@ complexity:
     active: true
     threshold: 4
 
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 20
+    thresholdInClasses: 20
+
 style:
   active: true
 
   MaxLineLength:
     active: true
     maxLineLength: 120
+
+  UnusedImports:
+    active: true
+
+  UnusedPrivateMember:
+    active: true
+
+potential-bugs:
+  active: true
+
+  UnusedUnaryOperator:
+    active: true
+
+empty-blocks:
+  active: true
+
+  EmptyFunctionBlock:
+    active: true

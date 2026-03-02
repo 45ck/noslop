@@ -15,6 +15,14 @@ ignore = [
 # Cyclomatic complexity cap — enforced by noslop
 max-complexity = 10
 
+[tool.ruff.lint.pylint]
+# Function size caps — enforced by noslop
+max-args = 4
+max-branches = 12
+max-statements = 50
+max-returns = 4
+max-bool-expr = 4
+
 [tool.mypy]
 strict = true
 ignore_missing_imports = true

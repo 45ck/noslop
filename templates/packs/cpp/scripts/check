@@ -4,19 +4,21 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    find . \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) | xargs clang-format --dry-run --Werror
+    find . \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) -not -path "*/build/*" | xargs clang-format --dry-run --Werror
     cppcheck --error-exitcode=1 --quiet .
     typos
     ;;
   slow)
-    cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+    cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release && cmake --build build
+    run-clang-tidy -p build -quiet
     ctest --test-dir build --output-on-failure
     ;;
   ci)
-    find . \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) | xargs clang-format --dry-run --Werror
+    find . \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) -not -path "*/build/*" | xargs clang-format --dry-run --Werror
     cppcheck --error-exitcode=1 --quiet .
     typos
-    cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+    cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release && cmake --build build
+    run-clang-tidy -p build -quiet
     ctest --test-dir build --output-on-failure
     ;;
   *)

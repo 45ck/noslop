@@ -13,9 +13,22 @@
     </properties>
   </rule>
 
+  <!-- NPath: combinatorial complexity — catches deeply branched logic cyclomatic misses -->
+  <rule ref="category/java/design.xml/NPathComplexity">
+    <properties>
+      <property name="reportLevel" value="200"/>
+    </properties>
+  </rule>
+
   <rule ref="category/java/design.xml/ExcessiveMethodLength">
     <properties>
       <property name="minimum" value="80"/>
+    </properties>
+  </rule>
+
+  <rule ref="category/java/design.xml/ExcessiveClassLength">
+    <properties>
+      <property name="minimum" value="350"/>
     </properties>
   </rule>
 
@@ -27,5 +40,8 @@
 
   <rule ref="category/java/design.xml/TooManyFields"/>
   <rule ref="category/java/bestpractices.xml/UnusedImports"/>
+  <rule ref="category/java/bestpractices.xml/UnusedLocalVariable"/>
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateField"/>
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod"/>
   <rule ref="category/java/errorprone.xml/EmptyCatchBlock"/>
 </ruleset>
