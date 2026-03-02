@@ -45,11 +45,14 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                                             |
-| ---- | -------------- | ------------------------------------------------------- |
-| fast | pre-commit     | `ormolu --mode check $(find . -name '*.hs')`, `hlint .` |
-| slow | pre-push       | `cabal test`                                            |
-| ci   | GitHub Actions | (quality.yml runs fast + slow gates)                    |
+| Tier | Trigger        | Command                                                                                                                                    |
+| ---- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| fast | pre-commit     | `ormolu --mode=check $(find . -name "*.hs" -not -path "./.stack-work/*")`                                                                  |
+| fast | pre-commit     | `hlint .`                                                                                                                                  |
+| fast | pre-commit     | `typos` (spell)                                                                                                                            |
+| slow | pre-push       | `cabal build`                                                                                                                              |
+| slow | pre-push       | `cabal test`                                                                                                                               |
+| ci   | GitHub Actions | `ormolu --mode=check $(find . -name "*.hs" -not -path "./.stack-work/*") && hlint . && typos && cabal build && cabal test` (full pipeline) |
 
 ## Verifying
 

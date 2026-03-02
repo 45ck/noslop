@@ -45,11 +45,13 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                          |
-| ---- | -------------- | ------------------------------------ |
-| fast | pre-commit     | `zig fmt --check .`, `zig build`     |
-| slow | pre-push       | `zig build test`                     |
-| ci   | GitHub Actions | (quality.yml runs fast + slow gates) |
+| Tier | Trigger        | Command                                                                        |
+| ---- | -------------- | ------------------------------------------------------------------------------ |
+| fast | pre-commit     | `zig fmt --check src/`                                                         |
+| fast | pre-commit     | `zig build`                                                                    |
+| fast | pre-commit     | `typos` (spell)                                                                |
+| slow | pre-push       | `zig build test`                                                               |
+| ci   | GitHub Actions | `zig fmt --check src/ && zig build && typos && zig build test` (full pipeline) |
 
 ## Verifying
 

@@ -4,29 +4,31 @@ How to use noslop in repositories that contain multiple languages or sub-project
 
 ## How pack detection works
 
-noslop scans the **repo root** for well-known detection files when you run `noslop init` without `--pack`. Detection priority (first match wins):
+noslop scans the **repo root** for well-known detection files when you run `noslop init` without `--pack`. All matching packs are detected simultaneously. A repo with both `package.json` and `Cargo.toml` detects both TypeScript and Rust -- you do not need to pass `--pack` at all.
 
-1. `tsconfig.json` or `package.json` → TypeScript
-2. `Cargo.toml` → Rust
-3. `.csproj`, `.sln`, or `global.json` → .NET
-4. `go.mod` → Go
-5. `pyproject.toml` or `requirements.txt` → Python
-6. `pom.xml` or `build.gradle` (no `.kt` files) → Java
-7. `Gemfile` → Ruby
-8. `Package.swift` → Swift
-9. `build.gradle` + `.kt` files → Kotlin
-10. `composer.json` → PHP
-11. `build.sbt` → Scala
-12. `mix.exs` → Elixir
-13. `pubspec.yaml` → Dart
-14. `build.zig` → Zig
-15. `.cabal` → Haskell
-16. `.rockspec` → Lua
-17. `CMakeLists.txt` → C/C++
-18. `dune-project` → OCaml
-19. (none matched) → TypeScript (default)
+| Detection file                                               | Pack detected        |
+| ------------------------------------------------------------ | -------------------- |
+| `tsconfig.json` or `package.json`                            | TypeScript           |
+| `Cargo.toml`                                                 | Rust                 |
+| `.csproj`, `.sln`, or `global.json`                          | .NET                 |
+| `go.mod`                                                     | Go                   |
+| `pyproject.toml`, `setup.py`, or `requirements.txt`          | Python               |
+| `pom.xml` or `build.gradle` (no `.kt` files in `src/`)       | Java                 |
+| `build.gradle` or `build.gradle.kts` + `.kt` files in `src/` | Kotlin               |
+| `composer.json`                                              | PHP                  |
+| `Gemfile`                                                    | Ruby                 |
+| `Package.swift`                                              | Swift                |
+| `CMakeLists.txt`                                             | C/C++                |
+| `build.sbt`                                                  | Scala                |
+| `mix.exs`                                                    | Elixir               |
+| `pubspec.yaml`                                               | Dart                 |
+| `build.zig`                                                  | Zig                  |
+| `.cabal` file                                                | Haskell              |
+| `.rockspec` file or file ending in `.rockspec`               | Lua                  |
+| `dune-project`                                               | OCaml                |
+| (none matched)                                               | TypeScript (default) |
 
-In a monorepo where the root contains `package.json` and a subdirectory `backend/` contains `Cargo.toml`, auto-detection will pick TypeScript (root wins). Use `--pack` to be explicit.
+> **Note:** JavaScript pack is not auto-detected. Use `--pack=javascript` to force it.
 
 ## Installing multiple packs
 
@@ -36,14 +38,13 @@ Pass `--pack` multiple times to install gates for every language in your monorep
 noslop init --pack typescript --pack python
 noslop init --pack typescript --pack rust
 noslop init --pack typescript --pack go
-noslop init --pack java --pack kotlin
 ```
 
 Each pack installs its own config file (e.g. `eslint.config.js` and `pyproject.toml`). The shared plumbing (`.githooks/`, `.github/workflows/`, `.claude/`) is installed once and covers all packs.
 
 ## How gates fire
 
-When `noslop check --tier=fast` runs (via the pre-commit hook or directly), it runs the fast commands for **every installed pack** in sequence. A failure in any pack's gate blocks the commit.
+When `noslop check --tier=fast` runs (via the pre-commit hook or directly), it enforces the fast gates for **every installed pack** in sequence. A failure in any pack's gate blocks the commit.
 
 ```sh
 # With typescript + python installed:

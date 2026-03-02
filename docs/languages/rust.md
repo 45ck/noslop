@@ -44,11 +44,15 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                                                      |
-| ---- | -------------- | ---------------------------------------------------------------- |
-| fast | pre-commit     | `cargo fmt --check`, `cargo clippy -- -D warnings`               |
-| slow | pre-push       | `cargo test`                                                     |
-| ci   | GitHub Actions | `cargo fmt --check && cargo clippy -- -D warnings && cargo test` |
+| Tier | Trigger        | Command                                                                                                  |
+| ---- | -------------- | -------------------------------------------------------------------------------------------------------- |
+| fast | pre-commit     | `cargo fmt --check`                                                                                      |
+| fast | pre-commit     | `cargo clippy -- -D warnings`                                                                            |
+| fast | pre-commit     | `typos` (spell)                                                                                          |
+| slow | pre-push       | `cargo build`                                                                                            |
+| slow | pre-push       | `cargo test`                                                                                             |
+| ci   | GitHub Actions | `cargo fmt --check && cargo clippy -- -D warnings && typos && cargo build && cargo test` (full pipeline) |
+| ci   | GitHub Actions | `cargo mutants` (mutation testing)                                                                       |
 
 ## Verifying
 

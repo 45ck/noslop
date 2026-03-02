@@ -112,7 +112,8 @@
     "adoptium",
     "Coursier",
     "ziglang",
-    "Comptime"
+    "Comptime",
+    "setuptools"
   ],
   "ignorePaths": [
     "dist/**",

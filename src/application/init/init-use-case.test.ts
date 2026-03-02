@@ -4,7 +4,7 @@ import type { InitCommand } from './init-use-case.js';
 import type { IConflictResolver, ConflictResolution } from '../ports/conflict-resolver.js';
 import { createPack } from '../../domain/pack/pack.js';
 import { createGate } from '../../domain/gate/gate.js';
-import { createConfig } from '../../domain/config/noslop-config.js';
+import { createConfig, DEFAULT_SPELL_CONFIG } from '../../domain/config/noslop-config.js';
 import { InMemoryFilesystem } from '../../infrastructure/adapters/in-memory-filesystem.js';
 import { InMemoryProcessRunner } from '../../infrastructure/adapters/in-memory-process-runner.js';
 
@@ -277,5 +277,155 @@ describe('init use case', () => {
     await init(makeCommand({ packs: [pack] }), fs, runner, spy);
 
     expect(spy.calls).toEqual([]);
+  });
+});
+
+const SPELL_GATE_CSPELL = createGate('spell', 'cspell --no-progress "{src}/**/*"', 'fast');
+const SPELL_GATE_TYPOS = createGate('spell', 'typos', 'fast');
+
+describe('init use case — spell config generation', () => {
+  it('writes cspell.json when pack uses cspell and spell is enabled', async () => {
+    const pack = createPack('typescript', 'TypeScript', [SPELL_GATE_CSPELL]);
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['typescript'], [], DEFAULT_SPELL_CONFIG);
+
+    await init(makeCommand({ packs: [pack], config }), fs, runner, makeResolver());
+
+    const content = await fs.readFile('/target/cspell.json');
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    expect(parsed['version']).toBe('0.2');
+    expect(parsed['language']).toBe('en');
+    expect(parsed['$schema']).toBeDefined();
+    expect(parsed['words']).toEqual([]);
+    expect(Array.isArray(parsed['ignorePaths'])).toBe(true);
+  });
+
+  it('writes .typos.toml when pack uses typos and spell is enabled', async () => {
+    const pack = createPack('rust', 'Rust', [SPELL_GATE_TYPOS]);
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['rust'], [], DEFAULT_SPELL_CONFIG);
+
+    await init(makeCommand({ packs: [pack], config }), fs, runner, makeResolver());
+
+    const content = await fs.readFile('/target/.typos.toml');
+    expect(content).toContain('locale = "en-us"');
+    expect(content).toContain('[default.extend-words]');
+  });
+
+  it('does not write any spell config file when spell is disabled', async () => {
+    const pack = createPack('typescript', 'TypeScript', [SPELL_GATE_CSPELL]);
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['typescript'], [], { enabled: false, language: 'en', words: [] });
+
+    await init(makeCommand({ packs: [pack], config }), fs, runner, makeResolver());
+
+    expect(await fs.exists('/target/cspell.json')).toBe(false);
+    expect(await fs.exists('/target/.typos.toml')).toBe(false);
+  });
+
+  it('includes custom words in generated cspell.json', async () => {
+    const pack = createPack('typescript', 'TypeScript', [SPELL_GATE_CSPELL]);
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const spell = { enabled: true, language: 'en', words: ['EventSourcing', 'AggregateRoot'] };
+    const config = createConfig(['typescript'], [], spell);
+
+    await init(makeCommand({ packs: [pack], config }), fs, runner, makeResolver());
+
+    const content = await fs.readFile('/target/cspell.json');
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    expect(parsed['words']).toEqual(['EventSourcing', 'AggregateRoot']);
+  });
+
+  it('uses en-GB locale in .typos.toml when language is en-GB', async () => {
+    const pack = createPack('rust', 'Rust', [SPELL_GATE_TYPOS]);
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['rust'], [], { enabled: true, language: 'en-GB', words: [] });
+
+    await init(makeCommand({ packs: [pack], config }), fs, runner, makeResolver());
+
+    const content = await fs.readFile('/target/.typos.toml');
+    expect(content).toContain('locale = "en-gb"');
+  });
+
+  it('adds spell config paths to filesWritten', async () => {
+    const pack = createPack('typescript', 'TypeScript', [SPELL_GATE_CSPELL]);
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['typescript'], [], DEFAULT_SPELL_CONFIG);
+
+    const result = await init(makeCommand({ packs: [pack], config }), fs, runner, makeResolver());
+
+    expect(result.filesWritten).toContain('/target/cspell.json');
+  });
+
+  it('skips spell config file when existing file conflicts and resolver returns skip', async () => {
+    const pack = createPack('typescript', 'TypeScript', [SPELL_GATE_CSPELL]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/target/cspell.json', '{}');
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['typescript'], [], DEFAULT_SPELL_CONFIG);
+
+    const result = await init(
+      makeCommand({ packs: [pack], config }),
+      fs,
+      runner,
+      makeResolver('skip'),
+    );
+
+    expect(result.filesWritten).not.toContain('/target/cspell.json');
+    expect(await fs.readFile('/target/cspell.json')).toBe('{}');
+  });
+
+  it('does not write spell config when pack has no spell gate', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['typescript'], [], DEFAULT_SPELL_CONFIG);
+
+    await init(makeCommand({ packs: [pack], config }), fs, runner, makeResolver());
+
+    expect(await fs.exists('/target/cspell.json')).toBe(false);
+  });
+
+  it('writes cspell.json only once for two packs that both use cspell', async () => {
+    const tsPack = createPack('typescript', 'TypeScript', [SPELL_GATE_CSPELL]);
+    const jsPack = createPack('javascript', 'JavaScript', [SPELL_GATE_CSPELL]);
+    const spy = makeSpyResolver();
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['typescript', 'javascript'], [], DEFAULT_SPELL_CONFIG);
+
+    const result = await init(makeCommand({ packs: [tsPack, jsPack], config }), fs, runner, spy);
+
+    const spellFiles = result.filesWritten.filter((f) => f.endsWith('cspell.json'));
+    expect(spellFiles).toHaveLength(1);
+    expect(spy.calls).toHaveLength(0); // no conflict, file did not exist before
+    const content = await fs.readFile('/target/cspell.json');
+    expect((JSON.parse(content) as Record<string, unknown>)['version']).toBe('0.2');
+  });
+
+  it('writes both cspell.json and .typos.toml for a polyglot repo with mixed spell tools', async () => {
+    const tsPack = createPack('typescript', 'TypeScript', [SPELL_GATE_CSPELL]);
+    const rustPack = createPack('rust', 'Rust', [SPELL_GATE_TYPOS]);
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['typescript', 'rust'], [], DEFAULT_SPELL_CONFIG);
+
+    const result = await init(
+      makeCommand({ packs: [tsPack, rustPack], config }),
+      fs,
+      runner,
+      makeResolver(),
+    );
+
+    expect(await fs.exists('/target/cspell.json')).toBe(true);
+    expect(await fs.exists('/target/.typos.toml')).toBe(true);
+    expect(result.filesWritten).toContain('/target/cspell.json');
+    expect(result.filesWritten).toContain('/target/.typos.toml');
   });
 });

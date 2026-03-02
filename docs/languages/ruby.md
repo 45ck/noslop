@@ -47,11 +47,14 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                        |
-| ---- | -------------- | ---------------------------------- |
-| fast | pre-commit     | `rubocop --only Layout`, `rubocop` |
-| slow | pre-push       | `rspec`                            |
-| ci   | GitHub Actions | None                               |
+| Tier | Trigger        | Command                                                                            |
+| ---- | -------------- | ---------------------------------------------------------------------------------- |
+| fast | pre-commit     | `bundle exec rubocop --only Layout --format=quiet`                                 |
+| fast | pre-commit     | `bundle exec rubocop --format=quiet`                                               |
+| fast | pre-commit     | `typos` (spell)                                                                    |
+| slow | pre-push       | `bundle exec rspec`                                                                |
+| ci   | GitHub Actions | `bundle exec rubocop --format=quiet && typos && bundle exec rspec` (full pipeline) |
+| ci   | GitHub Actions | `bundle exec mutant run` (mutation testing)                                        |
 
 ## Verifying
 

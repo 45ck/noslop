@@ -37,3 +37,11 @@ export function isCi(gate: Gate): boolean {
 export function gatesForTier(gates: readonly Gate[], tier: GateTier): Gate[] {
   return gates.filter((g) => g.tier === tier);
 }
+
+export function gateByLabel(gates: readonly Gate[], label: string): Gate | undefined {
+  return gates.find((g) => g.label === label);
+}
+
+export function gatesWithoutLabel(gates: readonly Gate[], label: string): Gate[] {
+  return gates.filter((g) => g.label !== label);
+}

@@ -118,6 +118,13 @@ describe('detectPacks', () => {
     expect(packs).toContain(PYTHON_PACK);
   });
 
+  it('detects Python pack when setup.py exists', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/project/setup.py', 'from setuptools import setup');
+    const packs = await detectPacks('/project', fs);
+    expect(packs).toContain(PYTHON_PACK);
+  });
+
   it('detects Java pack when pom.xml exists', async () => {
     const fs = new InMemoryFilesystem();
     fs.seed('/project/pom.xml', '<project/>');

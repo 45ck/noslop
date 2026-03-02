@@ -47,11 +47,14 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                                                                                        |
-| ---- | -------------- | -------------------------------------------------------------------------------------------------- |
-| fast | pre-commit     | `clang-format --dry-run -Werror $(find . -name '*.cpp' -o -name '*.h')`, `cppcheck --enable=all .` |
-| slow | pre-push       | `cmake -B build && cmake --build build && ctest --test-dir build`                                  |
-| ci   | GitHub Actions | (quality.yml runs fast + slow gates)                                                               |
+| Tier | Trigger        | Command                                                                                                                                                                                                                                                                                 |
+| ---- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| fast | pre-commit     | `find . \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) \| xargs clang-format --dry-run --Werror`                                                                                                                                                                                     |
+| fast | pre-commit     | `cppcheck --error-exitcode=1 --quiet .`                                                                                                                                                                                                                                                 |
+| fast | pre-commit     | `typos` (spell)                                                                                                                                                                                                                                                                         |
+| slow | pre-push       | `cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build`                                                                                                                                                                                                                      |
+| slow | pre-push       | `ctest --test-dir build --output-on-failure`                                                                                                                                                                                                                                            |
+| ci   | GitHub Actions | `find . \( -name "*.c" -o -name "*.cpp" -o -name "*.h" \) \| xargs clang-format --dry-run --Werror && cppcheck --error-exitcode=1 --quiet . && typos && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build && ctest --test-dir build --output-on-failure` (full pipeline) |
 
 ## Verifying
 

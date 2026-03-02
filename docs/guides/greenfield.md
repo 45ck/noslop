@@ -7,9 +7,9 @@ Starting a new project with quality gates from the first commit.
 | Command                   | When to use                                                                     |
 | ------------------------- | ------------------------------------------------------------------------------- |
 | `noslop setup`            | Interactive wizard; guides you through pack selection; good when you are unsure |
-| `noslop init --pack {id}` | Non-interactive; good for scripting, CI bootstrap, or when you know the pack    |
+| `noslop init --pack {id}` | Non-interactive; good for scripting, CI bootstrap, or when you know which pack  |
 
-For a new project where you know the stack, `noslop init --pack {id}` is faster. Use `noslop setup` when you want to explore the options.
+For a new project where you know the stack, `noslop init --pack {id}` is faster. Use `noslop setup` to explore options interactively.
 
 ## Wizard walkthrough
 

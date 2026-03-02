@@ -41,11 +41,13 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                                   |
-| ---- | -------------- | --------------------------------------------- |
-| fast | pre-commit     | `dart format --output=none .`, `dart analyze` |
-| slow | pre-push       | `dart test`                                   |
-| ci   | GitHub Actions | (quality.yml runs fast + slow gates)          |
+| Tier | Trigger        | Command                                                                                                   |
+| ---- | -------------- | --------------------------------------------------------------------------------------------------------- |
+| fast | pre-commit     | `dart format --output=none --set-exit-if-changed .`                                                       |
+| fast | pre-commit     | `dart analyze`                                                                                            |
+| fast | pre-commit     | `typos` (spell)                                                                                           |
+| slow | pre-push       | `dart test`                                                                                               |
+| ci   | GitHub Actions | `dart format --output=none --set-exit-if-changed . && dart analyze && typos && dart test` (full pipeline) |
 
 ## Verifying
 
