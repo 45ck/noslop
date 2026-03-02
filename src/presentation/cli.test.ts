@@ -202,6 +202,15 @@ describe('detectPacks', () => {
     expect(packs).toContain(OCAML_PACK);
   });
 
+  it('detects Java pack when Maven project has Java source files but no Kotlin files', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/project/pom.xml', '<project/>');
+    fs.seed('/project/src/Main.java', 'public class Main {}');
+    const packs = await detectPacks('/project', fs);
+    expect(packs).toContain(JAVA_PACK);
+    expect(packs).not.toContain(KOTLIN_PACK);
+  });
+
   it('detects Kotlin pack when .kt file exists in src/', async () => {
     const fs = new InMemoryFilesystem();
     fs.seed('/project/build.gradle.kts', 'plugins { kotlin("jvm") }');
