@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    mix format --check-formatted && mix credo --strict
+    mix format --check-formatted && mix credo --strict && typos
     ;;
   slow)
-    mix test
+    mix dialyzer && mix test
     ;;
   ci)
-    mix format --check-formatted && mix credo --strict && mix test
+    mix format --check-formatted && mix credo --strict && typos && mix dialyzer && mix test
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

@@ -31,7 +31,7 @@
     "mutation": "stryker run",
     "audit:high": "node scripts/ci/audit-high.mjs",
     "start": "node dist/presentation/cli.js",
-    "ci": "npm run typecheck && npm run lint && npm run format:check && npm run spell && npm run depcruise && npm run knip && npm run test:coverage && npm run audit:high",
+    "ci": "npm run typecheck && npm run lint && npm run format:check && npm run spell && npm run depcruise && npm run knip && npm run build && npm run test:coverage && npm run audit:high",
     "ci:nightly": "npm run ci && npm run mutation",
     "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath .githooks || true"
   },
@@ -47,6 +47,7 @@
     ]
   },
   "dependencies": {
+    "@clack/prompts": "^1.0.1",
     "chalk": "^5.6.2",
     "commander": "^13.1.0"
   },

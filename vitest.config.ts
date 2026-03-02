@@ -17,12 +17,16 @@ export default defineConfig({
         'src/**/*.test.ts',
         'src/**/index.ts',
         'src/application/ports/**/*.ts',
-        // CLI entry: integration-tested via process spawn, not unit tests
+        // CLI entry points: integration-tested via process spawn, not unit tests
         'src/presentation/cli.ts',
+        'src/presentation/setup-command.ts',
         // Real I/O adapters: tested indirectly via in-memory counterparts
         'src/infrastructure/adapters/node-filesystem.ts',
+        'src/infrastructure/adapters/node-process-runner.ts',
         // Pack declarations: pure data, exercised by use-case tests
-        'src/domain/packs/*.ts',
+        'src/domain/packs/**/*.ts',
+        // Integration tests: use real I/O, excluded from unit coverage thresholds
+        'src/integration/**/*.ts',
       ],
       thresholds: {
         // Global thresholds — high bar forces agents to write thorough tests

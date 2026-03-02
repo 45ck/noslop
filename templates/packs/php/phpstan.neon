@@ -1,0 +1,15 @@
+parameters:
+    # Level 8 = strictest PHPStan analysis — enforced by noslop
+    level: 8
+
+    # Treat PHPDoc types as certain (no loose type inference)
+    treatPhpDocTypesAsCertain: true
+
+    # Report unmatched ignored errors
+    reportUnmatchedIgnoredErrors: true
+
+    paths:
+        - src
+
+    excludePaths:
+        - vendor

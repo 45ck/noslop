@@ -15,5 +15,11 @@ jobs:
         with:
           ocaml-compiler: '5.2'
       - run: opam install . --deps-only --with-test
+      - name: Install typos
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
       - run: dune build @fmt @check
+      - run: typos
+      - run: dune build
       - run: dune runtest

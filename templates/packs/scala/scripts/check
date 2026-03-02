@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    sbt scalafmtCheckAll && sbt "scalafix --check"
+    sbt scalafmtCheckAll && sbt "scalafix --check" && typos
     ;;
   slow)
-    sbt test
+    sbt compile && sbt test
     ;;
   ci)
-    sbt "scalafmtCheckAll" "scalafix --check" test
+    sbt scalafmtCheckAll "scalafix --check" && typos && sbt compile && sbt test
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

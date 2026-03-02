@@ -16,6 +16,11 @@ jobs:
           php-version: '8.3'
           tools: composer
       - run: composer install --no-progress --prefer-dist
+      - name: Install typos
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
       - run: vendor/bin/php-cs-fixer check .
       - run: vendor/bin/phpstan analyse
+      - run: typos
       - run: vendor/bin/phpunit

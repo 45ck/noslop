@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    stylua --check . && luacheck .
+    stylua --check . && luacheck . && typos
     ;;
   slow)
     busted
     ;;
   ci)
-    stylua --check . && luacheck . && busted
+    stylua --check . && luacheck . && typos && busted
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

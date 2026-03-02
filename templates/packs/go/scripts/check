@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    test -z "$(gofmt -l .)" && go vet ./...
+    test -z "$(gofmt -l .)" && go vet ./... && typos
     ;;
   slow)
-    go test ./...
+    go build ./... && go test ./...
     ;;
   ci)
-    test -z "$(gofmt -l .)" && go vet ./... && go test ./...
+    test -z "$(gofmt -l .)" && go vet ./... && typos && go build ./... && go test ./...
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

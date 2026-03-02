@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    bundle exec rubocop --only Layout --format=quiet && bundle exec rubocop --format=quiet
+    bundle exec rubocop --only Layout --format=quiet && bundle exec rubocop --format=quiet && typos
     ;;
   slow)
     bundle exec rspec
     ;;
   ci)
-    bundle exec rubocop --format=quiet && bundle exec rspec
+    bundle exec rubocop --format=quiet && typos && bundle exec rspec
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

@@ -2,6 +2,7 @@ import type { Pack } from '../../domain/pack/pack.js';
 import type { NoslopConfig } from '../../domain/config/noslop-config.js';
 import type { IFilesystem } from '../ports/filesystem.js';
 import type { IProcessRunner } from '../ports/process-runner.js';
+import type { IConflictResolver } from '../ports/conflict-resolver.js';
 
 export type InitCommand = Readonly<{
   targetDir: string;
@@ -15,10 +16,20 @@ export type InitResult = Readonly<{
   hooksConfigured: boolean;
 }>;
 
+function isGateInfrastructure(destPath: string): boolean {
+  return (
+    destPath.includes('/.githooks/') ||
+    destPath.includes('/scripts/') ||
+    destPath.includes('/.github/') ||
+    destPath.includes('/.claude/')
+  );
+}
+
 export async function init(
   command: InitCommand,
   fs: IFilesystem,
   runner: IProcessRunner,
+  resolver: IConflictResolver,
 ): Promise<InitResult> {
   const filesWritten: string[] = [];
 
@@ -27,7 +38,7 @@ export async function init(
     const exists = await fs.exists(packTemplateDir);
     if (!exists) continue;
 
-    const written = await copyTemplateDir(packTemplateDir, command.targetDir, '', fs);
+    const written = await copyTemplateDir(packTemplateDir, command.targetDir, '', fs, resolver);
     filesWritten.push(...written);
   }
 
@@ -52,6 +63,7 @@ async function copyTemplateDir(
   targetDir: string,
   relativePrefix: string,
   fs: IFilesystem,
+  resolver: IConflictResolver,
 ): Promise<string[]> {
   const written: string[] = [];
   const entries = await fs.readdir(templateDir);
@@ -64,13 +76,19 @@ async function copyTemplateDir(
     const isDir = await fs.isDirectory(srcPath);
     if (isDir) {
       await fs.mkdir(destPath, { recursive: true });
-      const subWritten = await copyTemplateDir(srcPath, targetDir, relPath, fs);
+      const subWritten = await copyTemplateDir(srcPath, targetDir, relPath, fs, resolver);
       written.push(...subWritten);
     } else {
       const lastSlash = destPath.lastIndexOf('/');
       if (lastSlash > 0) {
         await fs.mkdir(destPath.slice(0, lastSlash), { recursive: true });
       }
+
+      if (!isGateInfrastructure(destPath) && (await fs.exists(destPath))) {
+        const resolution = await resolver.resolve(destPath);
+        if (resolution === 'skip') continue;
+      }
+
       await fs.copyFile(srcPath, destPath);
       const isExecutable =
         destPath.includes('/.githooks/') ||

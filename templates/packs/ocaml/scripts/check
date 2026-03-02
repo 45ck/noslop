@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    dune build @fmt && dune build @check
+    dune build @fmt && dune build @check && typos
     ;;
   slow)
-    dune runtest
+    dune build && dune runtest
     ;;
   ci)
-    dune build @fmt @check && dune runtest
+    dune build @fmt @check && typos && dune build && dune runtest
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

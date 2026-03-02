@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    ./gradlew checkstyleMain checkstyleTest -q && ./gradlew pmdMain -q
+    ./gradlew checkstyleMain checkstyleTest -q && ./gradlew pmdMain -q && typos
     ;;
   slow)
-    ./gradlew test
+    ./gradlew build -x test && ./gradlew test
     ;;
   ci)
-    ./gradlew checkstyleMain checkstyleTest pmdMain test
+    ./gradlew checkstyleMain checkstyleTest -q && ./gradlew pmdMain -q && typos && ./gradlew build -x test && ./gradlew test
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

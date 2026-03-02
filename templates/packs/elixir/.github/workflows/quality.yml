@@ -16,6 +16,12 @@ jobs:
           elixir-version: '1.16'
           otp-version: '26'
       - run: mix deps.get
+      - name: Install typos
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
       - run: mix format --check-formatted
       - run: mix credo --strict
+      - run: typos
+      - run: mix dialyzer
       - run: mix test

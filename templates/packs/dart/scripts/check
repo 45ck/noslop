@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    dart format --output=none --set-exit-if-changed . && dart analyze
+    dart format --output=none --set-exit-if-changed . && dart analyze && typos
     ;;
   slow)
     dart test
     ;;
   ci)
-    dart format --output=none --set-exit-if-changed . && dart analyze && dart test
+    dart format --output=none --set-exit-if-changed . && dart analyze && typos && dart test
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

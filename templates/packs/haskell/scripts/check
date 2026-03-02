@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    ormolu --mode=check $(find . -name "*.hs" -not -path "./.stack-work/*") && hlint .
+    ormolu --mode=check $(find . -name "*.hs" -not -path "./.stack-work/*") && hlint . && typos
     ;;
   slow)
-    cabal test
+    cabal build && cabal test
     ;;
   ci)
-    ormolu --mode=check $(find . -name "*.hs" -not -path "./.stack-work/*") && hlint . && cabal test
+    ormolu --mode=check $(find . -name "*.hs" -not -path "./.stack-work/*") && hlint . && typos && cabal build && cabal test
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

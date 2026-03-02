@@ -16,6 +16,12 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v3
+      - name: Install typos
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
       - run: ./gradlew ktlintCheck
       - run: ./gradlew detekt
+      - run: typos
+      - run: ./gradlew build -x test
       - run: ./gradlew test

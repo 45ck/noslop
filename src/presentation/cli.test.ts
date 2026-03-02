@@ -1,24 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { detectPacks } from './cli.js';
+import { detectPacks } from './packs.js';
 import { InMemoryFilesystem } from '../infrastructure/adapters/in-memory-filesystem.js';
-import { TYPESCRIPT_PACK } from '../domain/packs/typescript.js';
-import { RUST_PACK } from '../domain/packs/rust.js';
-import { DOTNET_PACK } from '../domain/packs/dotnet.js';
-import { GO_PACK } from '../domain/packs/go.js';
-import { PYTHON_PACK } from '../domain/packs/python.js';
-import { JAVA_PACK } from '../domain/packs/java.js';
-import { PHP_PACK } from '../domain/packs/php.js';
-import { RUBY_PACK } from '../domain/packs/ruby.js';
-import { SWIFT_PACK } from '../domain/packs/swift.js';
-import { CPP_PACK } from '../domain/packs/cpp.js';
-import { SCALA_PACK } from '../domain/packs/scala.js';
-import { ELIXIR_PACK } from '../domain/packs/elixir.js';
-import { DART_PACK } from '../domain/packs/dart.js';
-import { ZIG_PACK } from '../domain/packs/zig.js';
-import { HASKELL_PACK } from '../domain/packs/haskell.js';
-import { OCAML_PACK } from '../domain/packs/ocaml.js';
-import { KOTLIN_PACK } from '../domain/packs/kotlin.js';
-import { LUA_PACK } from '../domain/packs/lua.js';
+import { TYPESCRIPT_PACK } from '../domain/packs/typescript/typescript.js';
+import { RUST_PACK } from '../domain/packs/rust/rust.js';
+import { DOTNET_PACK } from '../domain/packs/dotnet/dotnet.js';
+import { GO_PACK } from '../domain/packs/go/go.js';
+import { PYTHON_PACK } from '../domain/packs/python/python.js';
+import { JAVA_PACK } from '../domain/packs/java/java.js';
+import { PHP_PACK } from '../domain/packs/php/php.js';
+import { RUBY_PACK } from '../domain/packs/ruby/ruby.js';
+import { SWIFT_PACK } from '../domain/packs/swift/swift.js';
+import { CPP_PACK } from '../domain/packs/cpp/cpp.js';
+import { SCALA_PACK } from '../domain/packs/scala/scala.js';
+import { ELIXIR_PACK } from '../domain/packs/elixir/elixir.js';
+import { DART_PACK } from '../domain/packs/dart/dart.js';
+import { ZIG_PACK } from '../domain/packs/zig/zig.js';
+import { HASKELL_PACK } from '../domain/packs/haskell/haskell.js';
+import { OCAML_PACK } from '../domain/packs/ocaml/ocaml.js';
+import { KOTLIN_PACK } from '../domain/packs/kotlin/kotlin.js';
+import { LUA_PACK } from '../domain/packs/lua/lua.js';
 
 describe('detectPacks', () => {
   it('detects TypeScript pack when tsconfig.json exists', async () => {

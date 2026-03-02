@@ -1,0 +1,36 @@
+# RuboCop configuration — enforced by noslop
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+
+# Cyclomatic complexity cap
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+# Method length
+Metrics/MethodLength:
+  Max: 80
+  CountAsOne:
+    - heredoc
+    - array
+    - hash
+
+# Block length
+Metrics/BlockLength:
+  Max: 80
+
+# Class length
+Metrics/ClassLength:
+  Max: 350
+
+# File length
+Metrics/FileLength:
+  Max: 350
+
+# Parameter count
+Metrics/ParameterLists:
+  Max: 4
+
+# Perceived complexity
+Metrics/PerceivedComplexity:
+  Max: 15

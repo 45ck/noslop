@@ -1,0 +1,12 @@
+# Clippy configuration — enforced by noslop
+# Cognitive complexity threshold (default is 25, we enforce 10)
+cognitive-complexity-threshold = 10
+
+# Type complexity threshold
+type-complexity-threshold = 250
+
+# Too many lines in a function
+too-many-lines-threshold = 80
+
+# Too many arguments
+too-many-arguments-threshold = 4
