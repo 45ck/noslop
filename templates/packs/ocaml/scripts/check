@@ -4,7 +4,7 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    dune build @fmt @check
+    dune build @fmt && dune build @check
     ;;
   slow)
     dune runtest

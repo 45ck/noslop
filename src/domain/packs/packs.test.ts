@@ -164,5 +164,11 @@ for (const { pack, id, name } of standardPacks) {
       expect(g).toBeDefined();
       expect(g?.tier).toBe('ci');
     });
+
+    it('lint gate exists and is tier fast', () => {
+      const g = gate(pack, 'lint');
+      expect(g).toBeDefined();
+      expect(g?.tier).toBe('fast');
+    });
   });
 }

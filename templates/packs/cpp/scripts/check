@@ -4,14 +4,14 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    find . -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | xargs clang-format --dry-run --Werror
+    find . \( -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" \) -type f | xargs clang-format --dry-run --Werror
     cppcheck --error-exitcode=1 --quiet .
     ;;
   slow)
     cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build && ctest --test-dir build --output-on-failure
     ;;
   ci)
-    find . -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | xargs clang-format --dry-run --Werror
+    find . \( -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" \) -type f | xargs clang-format --dry-run --Werror
     cppcheck --error-exitcode=1 --quiet .
     cmake -B build && cmake --build build && ctest --test-dir build --output-on-failure
     ;;

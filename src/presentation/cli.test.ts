@@ -17,6 +17,8 @@ import { DART_PACK } from '../domain/packs/dart.js';
 import { ZIG_PACK } from '../domain/packs/zig.js';
 import { HASKELL_PACK } from '../domain/packs/haskell.js';
 import { OCAML_PACK } from '../domain/packs/ocaml.js';
+import { KOTLIN_PACK } from '../domain/packs/kotlin.js';
+import { LUA_PACK } from '../domain/packs/lua.js';
 
 describe('detectPacks', () => {
   it('detects TypeScript pack when tsconfig.json exists', async () => {
@@ -191,5 +193,20 @@ describe('detectPacks', () => {
     fs.seed('/project/dune-project', '(lang dune 3.0)');
     const packs = await detectPacks('/project', fs);
     expect(packs).toContain(OCAML_PACK);
+  });
+
+  it('detects Kotlin pack when .kt file exists in src/', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/project/build.gradle.kts', 'plugins { kotlin("jvm") }');
+    fs.seed('/project/src/Main.kt', 'fun main() {}');
+    const packs = await detectPacks('/project', fs);
+    expect(packs).toContain(KOTLIN_PACK);
+  });
+
+  it('detects Lua pack when .rockspec file exists', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/project/mylib-1.0-1.rockspec', 'package = "mylib"');
+    const packs = await detectPacks('/project', fs);
+    expect(packs).toContain(LUA_PACK);
   });
 });

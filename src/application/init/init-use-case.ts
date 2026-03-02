@@ -72,7 +72,11 @@ async function copyTemplateDir(
         await fs.mkdir(destPath.slice(0, lastSlash), { recursive: true });
       }
       await fs.copyFile(srcPath, destPath);
-      await fs.chmod(destPath, 0o755);
+      const isExecutable =
+        destPath.includes('/.githooks/') ||
+        destPath.includes('/scripts/') ||
+        destPath.includes('/.claude/hooks/');
+      await fs.chmod(destPath, isExecutable ? 0o755 : 0o644);
       written.push(destPath);
     }
   }

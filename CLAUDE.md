@@ -9,7 +9,7 @@
 
 ## Product context
 
-`noslop` is a CLI tool that installs quality gates into any repo (TypeScript, Rust, C#).
+`noslop` is a CLI tool that installs quality gates into any repo. Supports 19 language packs.
 The product ships as `@45ck/noslop` on npm with a `noslop` binary.
 
 Key commands: `noslop init | install | check | doctor`
@@ -44,7 +44,7 @@ Key commands: `noslop init | install | check | doctor`
 - `Gate` (VO): `{ label, command, tier: 'fast'|'slow'|'ci' }`
 - `Pack` (entity): `{ id, name, gates[] }` — one per language
 - `NoslopConfig`: `{ packs[], protectedPaths[] }`
-- Packs defined in `src/domain/packs/`: typescript, rust, dotnet
+- Packs defined in `src/domain/packs/`: 19 packs — see `src/domain/index.ts` for the full list.
 
 ## Adding a new language pack
 
