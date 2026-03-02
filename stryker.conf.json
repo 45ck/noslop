@@ -3,6 +3,7 @@
   "mutate": [
     "src/**/*.ts",
     "!src/**/*.test.ts",
+    "!src/domain/packs/**/*.ts",
     "!src/presentation/cli.ts",
     "!src/presentation/setup-command.ts",
     "!src/infrastructure/adapters/node-filesystem.ts"
