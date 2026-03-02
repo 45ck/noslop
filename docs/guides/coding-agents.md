@@ -1,0 +1,123 @@
+# noslop — coding agent install guide
+
+This guide is written for AI coding agents (Claude Code, Copilot Workspace, Cursor, and similar tools). Follow it exactly.
+
+## Quick install
+
+Three commands. Run them in order.
+
+```sh
+# 1. Install noslop globally if not already present
+npm install -g @45ck/noslop
+
+# 2. Install quality gates into the current repo
+noslop install
+
+# 3. Verify the install is healthy — must exit 0
+noslop doctor
+```
+
+If `noslop doctor` exits non-zero, do not proceed. Read the error output and fix each failed check before making any commits.
+
+## Forcing a specific pack
+
+If auto-detection picks the wrong pack, or you are working in a monorepo with multiple languages:
+
+```sh
+noslop install --pack typescript
+noslop install --pack typescript --pack python   # monorepo: two packs
+```
+
+## Detection rules
+
+Use this table to determine which `--pack` value to pass without running noslop:
+
+| File present in repo root                    | Pack ID                |
+| -------------------------------------------- | ---------------------- |
+| `tsconfig.json` or `package.json`            | `typescript`           |
+| `Cargo.toml`                                 | `rust`                 |
+| `.csproj`, `.sln`, or `global.json`          | `dotnet`               |
+| `go.mod`                                     | `go`                   |
+| `pyproject.toml` or `requirements.txt`       | `python`               |
+| `pom.xml` or `build.gradle` (no `.kt` files) | `java`                 |
+| `Gemfile`                                    | `ruby`                 |
+| `Package.swift`                              | `swift`                |
+| `build.gradle` + `.kt` files present         | `kotlin`               |
+| `composer.json`                              | `php`                  |
+| `build.sbt`                                  | `scala`                |
+| `mix.exs`                                    | `elixir`               |
+| `pubspec.yaml`                               | `dart`                 |
+| `build.zig`                                  | `zig`                  |
+| `.cabal`                                     | `haskell`              |
+| `.rockspec`                                  | `lua`                  |
+| `CMakeLists.txt`                             | `cpp`                  |
+| `dune-project`                               | `ocaml`                |
+| (none of the above)                          | `typescript` (default) |
+
+## Post-install constraints
+
+After `noslop install`, these constraints apply. You MUST NOT violate them:
+
+1. **Do not bypass hooks.** Never run `git commit --no-verify` or `git push --no-verify`.
+2. **Do not edit protected paths.** These paths are enforced by `.claude/settings.json` and CI:
+   - `.githooks/`
+   - `.github/workflows/`
+   - `.claude/settings.json`
+   - `.claude/hooks/`
+3. **Gate must pass before committing.** Run `noslop check --tier=fast` and confirm it exits 0 before staging any commit.
+4. **Do not use force push.** Never run `git push -f` or `git push --force`.
+5. **Do not disable linters inline.** Do not add `// eslint-disable`, `#noqa`, `// NOLINT`, or equivalent suppression comments to pass a gate.
+
+## Before every commit
+
+```sh
+noslop check --tier=fast    # must exit 0
+git add .
+git commit -m "feat: your message"
+```
+
+The pre-commit hook will also run `noslop check --tier=fast` automatically. If it fails, fix the reported issues before retrying.
+
+## CI bootstrap
+
+For CI pipelines that do not have noslop pre-installed:
+
+```sh
+npx @45ck/noslop install && noslop check --tier=ci
+```
+
+## Verifying a healthy install
+
+`noslop doctor` on a correctly installed repo outputs:
+
+```
+✓ .githooks/pre-commit present and executable
+✓ .githooks/pre-push present and executable
+✓ .githooks/commit-msg present and executable
+✓ git config core.hooksPath = .githooks
+✓ .github/workflows/quality.yml present
+✓ .github/workflows/guardrails.yml present
+✓ .claude/settings.json present
+✓ .claude/hooks/pre-tool-use.sh present
+
+All checks passed.
+```
+
+Exit code 0 = healthy. Any non-zero exit code means one or more checks failed — read the output and re-run `noslop install` to repair.
+
+## What noslop installs
+
+| File                               | Purpose                                               |
+| ---------------------------------- | ----------------------------------------------------- |
+| `.githooks/pre-commit`             | Runs fast gates before every commit                   |
+| `.githooks/pre-push`               | Runs slow gates before every push                     |
+| `.githooks/commit-msg`             | Enforces Conventional Commits; blocks `[skip ci]`     |
+| `.github/workflows/quality.yml`    | Required CI check on PRs and main pushes              |
+| `.github/workflows/guardrails.yml` | Blocks PRs touching protected files without label     |
+| `.claude/settings.json`            | Denies `--no-verify`, `--force`, protected path edits |
+| `.claude/hooks/pre-tool-use.sh`    | Intercepts tool calls; blocks bypass patterns         |
+| `scripts/check`                    | Wrapper: `noslop check --tier=fast`                   |
+| `scripts/fmt`                      | Wrapper: formatter for the detected pack              |
+| `scripts/lint`                     | Wrapper: linter for the detected pack                 |
+| `scripts/test`                     | Wrapper: test suite for the detected pack             |
+| `AGENTS.md`                        | Plain-language rules for AI agents in this repo       |
