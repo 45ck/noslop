@@ -48,11 +48,15 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                                             |
-| ---- | -------------- | ------------------------------------------------------- |
-| fast | pre-commit     | `prettier --check`, `eslint --max-warnings=0`, `cspell` |
-| slow | pre-push       | `tsc --noEmit`, `vitest run`                            |
-| ci   | GitHub Actions | `npm run ci`                                            |
+| Tier | Trigger        | Command                                     |
+| ---- | -------------- | ------------------------------------------- |
+| fast | pre-commit     | `prettier . --check`                        |
+| fast | pre-commit     | `eslint . --max-warnings=0`                 |
+| fast | pre-commit     | `cspell --no-progress "{src}/**/*"` (spell) |
+| slow | pre-push       | `tsc -p tsconfig.json --noEmit`             |
+| slow | pre-push       | `vitest run`                                |
+| ci   | GitHub Actions | `npm run ci` (full pipeline)                |
+| ci   | GitHub Actions | `npx stryker run` (mutation testing)        |
 
 ## Verifying
 

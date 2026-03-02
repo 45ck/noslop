@@ -92,37 +92,37 @@ your-repo/
 | `slow` | `pre-push` hook — before every push          | Type checking and full test suite. Slower but still runs locally.   |
 | `ci`   | GitHub Actions — on PRs and pushes to `main` | Full pipeline. Authoritative: cannot be skipped by any local trick. |
 
-**Hooks wiring.** Hooks are set via `git config core.hooksPath .githooks`, not via a dev-dependency. They activate for every contributor without requiring `npm install` or any other setup step beyond cloning the repo.
+**Hooks wiring.** Hooks connect via `git config core.hooksPath .githooks`, not via a dev-dependency. They activate for every contributor without requiring `npm install` or any other setup step beyond cloning the repo.
 
-**Claude guardrails.** The `pre-tool-use.sh` hook intercepts every Bash tool call Claude Code makes before execution and blocks commands containing `--no-verify`, `SKIP_CI`, `[skip ci]`, or ESLint config-disabling flags. Combined with the `settings.json` deny rules, this prevents an AI agent from bypassing the local gates even if it tries to.
+**Claude guardrails.** The `pre-tool-use.sh` hook intercepts every Bash tool call Claude Code makes before execution and blocks commands containing `--no-verify`, `SKIP_CI`, `[skip ci]`, or ESLint config-disabling flags. Combined with the `settings.json` deny rules, this prevents any AI agent from bypassing the local gates.
 
 ---
 
 ## Language packs
 
-Pack is auto-detected from your repo's files. Override with `--pack`.
+Packs are auto-detected from your repo's files. Override detection with `--pack`.
 
-| Pack           | Detected by                          | Full details                                                 |
-| -------------- | ------------------------------------ | ------------------------------------------------------------ |
-| **TypeScript** | `tsconfig.json`, `package.json`      | [docs/languages/typescript.md](docs/languages/typescript.md) |
-| **JavaScript** | `package.json`                       | [docs/languages/javascript.md](docs/languages/javascript.md) |
-| **Rust**       | `Cargo.toml`                         | [docs/languages/rust.md](docs/languages/rust.md)             |
-| **.NET / C#**  | `.csproj`, `.sln`, `global.json`     | [docs/languages/dotnet.md](docs/languages/dotnet.md)         |
-| **Python**     | `pyproject.toml`, `requirements.txt` | [docs/languages/python.md](docs/languages/python.md)         |
-| **Go**         | `go.mod`                             | [docs/languages/go.md](docs/languages/go.md)                 |
-| **Java**       | `pom.xml`, `build.gradle`            | [docs/languages/java.md](docs/languages/java.md)             |
-| **Ruby**       | `Gemfile`                            | [docs/languages/ruby.md](docs/languages/ruby.md)             |
-| **Kotlin**     | `build.gradle` + `.kt` files         | [docs/languages/kotlin.md](docs/languages/kotlin.md)         |
-| **Swift**      | `Package.swift`                      | [docs/languages/swift.md](docs/languages/swift.md)           |
-| **PHP**        | `composer.json`                      | [docs/languages/php.md](docs/languages/php.md)               |
-| **Scala**      | `build.sbt`                          | [docs/languages/scala.md](docs/languages/scala.md)           |
-| **Elixir**     | `mix.exs`                            | [docs/languages/elixir.md](docs/languages/elixir.md)         |
-| **Dart**       | `pubspec.yaml`                       | [docs/languages/dart.md](docs/languages/dart.md)             |
-| **Haskell**    | `.cabal`                             | [docs/languages/haskell.md](docs/languages/haskell.md)       |
-| **Lua**        | `.rockspec`                          | [docs/languages/lua.md](docs/languages/lua.md)               |
-| **C / C++**    | `CMakeLists.txt`                     | [docs/languages/cpp.md](docs/languages/cpp.md)               |
-| **Zig**        | `build.zig`                          | [docs/languages/zig.md](docs/languages/zig.md)               |
-| **OCaml**      | `dune-project`                       | [docs/languages/ocaml.md](docs/languages/ocaml.md)           |
+| Pack           | Detected by                                      | Full details                                                 |
+| -------------- | ------------------------------------------------ | ------------------------------------------------------------ |
+| **TypeScript** | `tsconfig.json`, `package.json`                  | [docs/languages/typescript.md](docs/languages/typescript.md) |
+| **JavaScript** | `package.json`                                   | [docs/languages/javascript.md](docs/languages/javascript.md) |
+| **Rust**       | `Cargo.toml`                                     | [docs/languages/rust.md](docs/languages/rust.md)             |
+| **.NET / C#**  | `.csproj`, `.sln`, `global.json`                 | [docs/languages/dotnet.md](docs/languages/dotnet.md)         |
+| **Python**     | `pyproject.toml`, `setup.py`, `requirements.txt` | [docs/languages/python.md](docs/languages/python.md)         |
+| **Go**         | `go.mod`                                         | [docs/languages/go.md](docs/languages/go.md)                 |
+| **Java**       | `pom.xml`, `build.gradle`                        | [docs/languages/java.md](docs/languages/java.md)             |
+| **Ruby**       | `Gemfile`                                        | [docs/languages/ruby.md](docs/languages/ruby.md)             |
+| **Kotlin**     | `build.gradle` + `.kt` files                     | [docs/languages/kotlin.md](docs/languages/kotlin.md)         |
+| **Swift**      | `Package.swift`                                  | [docs/languages/swift.md](docs/languages/swift.md)           |
+| **PHP**        | `composer.json`                                  | [docs/languages/php.md](docs/languages/php.md)               |
+| **Scala**      | `build.sbt`                                      | [docs/languages/scala.md](docs/languages/scala.md)           |
+| **Elixir**     | `mix.exs`                                        | [docs/languages/elixir.md](docs/languages/elixir.md)         |
+| **Dart**       | `pubspec.yaml`                                   | [docs/languages/dart.md](docs/languages/dart.md)             |
+| **Haskell**    | `.cabal`                                         | [docs/languages/haskell.md](docs/languages/haskell.md)       |
+| **Lua**        | `.rockspec`                                      | [docs/languages/lua.md](docs/languages/lua.md)               |
+| **C / C++**    | `CMakeLists.txt`                                 | [docs/languages/cpp.md](docs/languages/cpp.md)               |
+| **Zig**        | `build.zig`                                      | [docs/languages/zig.md](docs/languages/zig.md)               |
+| **OCaml**      | `dune-project`                                   | [docs/languages/ocaml.md](docs/languages/ocaml.md)           |
 
 ---
 

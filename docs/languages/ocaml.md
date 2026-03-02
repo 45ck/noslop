@@ -47,11 +47,14 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                          |
-| ---- | -------------- | ------------------------------------ |
-| fast | pre-commit     | `dune @fmt`, `dune @check`           |
-| slow | pre-push       | `dune runtest`                       |
-| ci   | GitHub Actions | (quality.yml runs fast + slow gates) |
+| Tier | Trigger        | Command                                                                         |
+| ---- | -------------- | ------------------------------------------------------------------------------- |
+| fast | pre-commit     | `dune build @fmt`                                                               |
+| fast | pre-commit     | `dune build @check`                                                             |
+| fast | pre-commit     | `typos` (spell)                                                                 |
+| slow | pre-push       | `dune build`                                                                    |
+| slow | pre-push       | `dune runtest`                                                                  |
+| ci   | GitHub Actions | `dune build @fmt @check && typos && dune build && dune runtest` (full pipeline) |
 
 ## Verifying
 

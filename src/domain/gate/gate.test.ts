@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   createGate,
+  gateByLabel,
   gatesForTier,
+  gatesWithoutLabel,
   isCi,
   isFast,
   isSlow,
@@ -99,5 +101,58 @@ describe('gatesForTier', () => {
 
   it('returns empty array when no gates match', () => {
     expect(gatesForTier([], 'fast')).toHaveLength(0);
+  });
+});
+
+describe('gateByLabel', () => {
+  const gates: Gate[] = [
+    createGate('lint', 'eslint .', 'fast'),
+    createGate('spell', 'cspell .', 'fast'),
+    createGate('test', 'vitest run', 'slow'),
+  ];
+
+  it('returns the gate with matching label', () => {
+    const result = gateByLabel(gates, 'spell');
+    expect(result?.label).toBe('spell');
+    expect(result?.command).toBe('cspell .');
+  });
+
+  it('returns undefined when label is not found', () => {
+    expect(gateByLabel(gates, 'missing')).toBeUndefined();
+  });
+
+  it('returns undefined for empty array', () => {
+    expect(gateByLabel([], 'spell')).toBeUndefined();
+  });
+
+  it('returns the first gate when multiple gates share the same label', () => {
+    const duplicates: Gate[] = [
+      createGate('lint', 'eslint .', 'fast'),
+      createGate('lint', 'eslint --fix .', 'fast'),
+    ];
+    // Documents: first match wins; callers should not rely on duplicate-label packs
+    expect(gateByLabel(duplicates, 'lint')?.command).toBe('eslint .');
+  });
+});
+
+describe('gatesWithoutLabel', () => {
+  const gates: Gate[] = [
+    createGate('lint', 'eslint .', 'fast'),
+    createGate('spell', 'cspell .', 'fast'),
+    createGate('test', 'vitest run', 'slow'),
+  ];
+
+  it('excludes the gate with matching label', () => {
+    const result = gatesWithoutLabel(gates, 'spell');
+    expect(result).toHaveLength(2);
+    expect(result.every((g) => g.label !== 'spell')).toBe(true);
+  });
+
+  it('returns all gates when label is not found', () => {
+    expect(gatesWithoutLabel(gates, 'missing')).toHaveLength(3);
+  });
+
+  it('returns empty array for empty input', () => {
+    expect(gatesWithoutLabel([], 'spell')).toHaveLength(0);
   });
 });

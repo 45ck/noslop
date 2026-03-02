@@ -47,11 +47,15 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                                   |
-| ---- | -------------- | --------------------------------------------- |
-| fast | pre-commit     | `ktlint --reporter=plain`, `./gradlew detekt` |
-| slow | pre-push       | `./gradlew test`                              |
-| ci   | GitHub Actions | None                                          |
+| Tier | Trigger        | Command                                                                                              |
+| ---- | -------------- | ---------------------------------------------------------------------------------------------------- |
+| fast | pre-commit     | `./gradlew ktlintCheck`                                                                              |
+| fast | pre-commit     | `./gradlew detekt`                                                                                   |
+| fast | pre-commit     | `typos` (spell)                                                                                      |
+| slow | pre-push       | `./gradlew build -x test`                                                                            |
+| slow | pre-push       | `./gradlew test`                                                                                     |
+| ci   | GitHub Actions | `./gradlew ktlintCheck detekt && typos && ./gradlew build -x test && ./gradlew test` (full pipeline) |
+| ci   | GitHub Actions | `./gradlew pitest` (mutation testing)                                                                |
 
 ## Verifying
 

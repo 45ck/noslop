@@ -48,11 +48,14 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                                 |
-| ---- | -------------- | ------------------------------------------- |
-| fast | pre-commit     | `mix format --check-formatted`, `mix credo` |
-| slow | pre-push       | `mix test`                                  |
-| ci   | GitHub Actions | (quality.yml runs fast + slow gates)        |
+| Tier | Trigger        | Command                                                                                                   |
+| ---- | -------------- | --------------------------------------------------------------------------------------------------------- |
+| fast | pre-commit     | `mix format --check-formatted`                                                                            |
+| fast | pre-commit     | `mix credo --strict`                                                                                      |
+| fast | pre-commit     | `typos` (spell)                                                                                           |
+| slow | pre-push       | `mix dialyzer`                                                                                            |
+| slow | pre-push       | `mix test`                                                                                                |
+| ci   | GitHub Actions | `mix format --check-formatted && mix credo --strict && typos && mix dialyzer && mix test` (full pipeline) |
 
 ## Verifying
 

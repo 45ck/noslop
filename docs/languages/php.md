@@ -1,6 +1,6 @@
 # PHP — noslop pack
 
-> Enforces strict static analysis (PHPStan level 8), mess detection (PHPMD), and consistent formatting via php-cs-fixer.
+> Enforces strict static analysis (PHPStan level 8) and consistent formatting via php-cs-fixer.
 
 ## Prerequisites
 
@@ -10,7 +10,6 @@
 | Composer     | latest  | [getcomposer.org](https://getcomposer.org/)         |
 | php-cs-fixer | latest  | `composer global require friendsofphp/php-cs-fixer` |
 | PHPStan      | latest  | `composer require --dev phpstan/phpstan`            |
-| PHPMD        | latest  | `composer require --dev phpmd/phpmd`                |
 | PHPUnit      | latest  | `composer require --dev phpunit/phpunit`            |
 
 ## Install
@@ -31,33 +30,29 @@ noslop doctor
 - `.claude/hooks/pre-tool-use.sh` — intercepts Claude Code tool calls; blocks bypass patterns
 - `scripts/check` — wrapper: noslop check --tier=fast
 - `scripts/fmt` — wrapper: runs php-cs-fixer for this pack
-- `scripts/lint` — wrapper: runs PHPStan and PHPMD for this pack
+- `scripts/lint` — wrapper: runs PHPStan for this pack
 - `scripts/test` — wrapper: runs PHPUnit for this pack
 - `AGENTS.md` — plain-language rules for AI coding agents
 - `phpstan.neon` — PHPStan configuration (level 8, strictest)
-- `phpmd.xml` — PHPMD ruleset (complexity, size, unused code)
 
 ## Quality rules
 
-| Config file  | Rule                  | Threshold                                         |
-| ------------ | --------------------- | ------------------------------------------------- |
-| phpmd.xml    | Cyclomatic complexity | CC ≤ 10                                           |
-| phpmd.xml    | NPath complexity      | combinatorial alternative to cognitive complexity |
-| phpmd.xml    | Function length       | ≤ 80 lines                                        |
-| phpmd.xml    | File length           | ≤ 350 lines                                       |
-| phpmd.xml    | Parameter count       | ≤ 4                                               |
-| phpstan.neon | Type strictness       | level 8 (strictest)                               |
-| phpmd.xml    | Unused code           | error                                             |
+| Config file  | Rule            | Threshold           |
+| ------------ | --------------- | ------------------- |
+| phpstan.neon | Type strictness | level 8 (strictest) |
 
-> **Note:** Cognitive complexity is not enforced — no PHP tool exposes cognitive complexity; PHPMD provides NPath complexity as a combinatorial alternative. Nesting depth is not enforced — PHPMD has no depth rule; PHPStan level 8 covers type correctness.
+> **Note:** Cyclomatic complexity, cognitive complexity, function length, file length, parameter count, nesting depth, and unused code are not enforced by PHPStan alone. PHPMD adds these metrics but requires separate installation and configuration that noslop does not manage. PHPStan level 8 covers type correctness.
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                                            |
-| ---- | -------------- | ------------------------------------------------------ |
-| fast | pre-commit     | `php-cs-fixer fix --dry-run --diff`, `phpstan analyse` |
-| slow | pre-push       | `phpunit`                                              |
-| ci   | GitHub Actions | (quality.yml runs fast + slow gates)                   |
+| Tier | Trigger        | Command                                                                                                        |
+| ---- | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| fast | pre-commit     | `vendor/bin/php-cs-fixer check .`                                                                              |
+| fast | pre-commit     | `vendor/bin/phpstan analyse`                                                                                   |
+| fast | pre-commit     | `typos` (spell)                                                                                                |
+| slow | pre-push       | `vendor/bin/phpunit`                                                                                           |
+| ci   | GitHub Actions | `vendor/bin/php-cs-fixer check . && vendor/bin/phpstan analyse && typos && vendor/bin/phpunit` (full pipeline) |
+| ci   | GitHub Actions | `vendor/bin/infection` (mutation testing)                                                                      |
 
 ## Verifying
 

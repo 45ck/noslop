@@ -46,11 +46,14 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                                         |
-| ---- | -------------- | --------------------------------------------------- |
-| fast | pre-commit     | `swift-format lint --recursive .`, `swiftlint lint` |
-| slow | pre-push       | `swift test`                                        |
-| ci   | GitHub Actions | None                                                |
+| Tier | Trigger        | Command                                                                                                   |
+| ---- | -------------- | --------------------------------------------------------------------------------------------------------- |
+| fast | pre-commit     | `swift-format lint --recursive .`                                                                         |
+| fast | pre-commit     | `swiftlint lint`                                                                                          |
+| fast | pre-commit     | `typos` (spell)                                                                                           |
+| slow | pre-push       | `swift build`                                                                                             |
+| slow | pre-push       | `swift test`                                                                                              |
+| ci   | GitHub Actions | `swift-format lint --recursive . && swiftlint lint && typos && swift build && swift test` (full pipeline) |
 
 ## Verifying
 

@@ -1,5 +1,6 @@
 import type { Pack } from '../../domain/pack/pack.js';
-import type { NoslopConfig } from '../../domain/config/noslop-config.js';
+import type { NoslopConfig, SpellConfig } from '../../domain/config/noslop-config.js';
+import { gateByLabel } from '../../domain/gate/gate.js';
 import type { IFilesystem } from '../ports/filesystem.js';
 import type { IProcessRunner } from '../ports/process-runner.js';
 import type { IConflictResolver } from '../ports/conflict-resolver.js';
@@ -25,6 +26,69 @@ function isGateInfrastructure(destPath: string): boolean {
   );
 }
 
+function mapLocale(language: string): string {
+  if (language === 'en' || language === 'en-US') return 'en-us';
+  if (language === 'en-GB') return 'en-gb';
+  return language;
+}
+
+function buildCspellJson(spell: SpellConfig): string {
+  return JSON.stringify(
+    {
+      $schema:
+        'https://raw.githubusercontent.com/streetsidesoftware/cspell/main/packages/cspell-types/cspell.schema.json',
+      version: '0.2',
+      language: spell.language,
+      words: spell.words,
+      ignorePaths: ['node_modules/**', 'dist/**', 'build/**', '.git/**', '*.lock'],
+    },
+    null,
+    2,
+  );
+}
+
+function buildTyposToml(spell: SpellConfig): string {
+  const locale = mapLocale(spell.language);
+  return `# typos configuration — https://github.com/crate-ci/typos
+[default]
+locale = "${locale}"
+
+[default.extend-words]
+# Add project-specific terms that typos should not flag as errors.
+# Format: "wrong-spelling" = "correct-or-allowed-spelling"
+# Example: "referer" = "referer"
+`;
+}
+
+function spellConfigFileName(pack: Pack): string | null {
+  const spellGate = gateByLabel(pack.gates, 'spell');
+  if (!spellGate) return null;
+  return spellGate.command.includes('cspell') ? 'cspell.json' : '.typos.toml';
+}
+
+async function writeSpellConfigForPack(
+  pack: Pack,
+  targetDir: string,
+  spell: SpellConfig,
+  fs: IFilesystem,
+  resolver: IConflictResolver,
+): Promise<string | null> {
+  const fileName = spellConfigFileName(pack);
+  if (!fileName) return null;
+
+  const filePath = `${targetDir}/${fileName}`;
+  const content = fileName === 'cspell.json' ? buildCspellJson(spell) : buildTyposToml(spell);
+
+  if (await fs.exists(filePath)) {
+    const resolution = await resolver.resolve(filePath);
+    if (resolution === 'skip') return null;
+  }
+
+  await fs.writeFile(filePath, content);
+  await fs.chmod(filePath, 0o644);
+  return filePath;
+}
+
 export async function init(
   command: InitCommand,
   fs: IFilesystem,
@@ -40,6 +104,23 @@ export async function init(
 
     const written = await copyTemplateDir(packTemplateDir, command.targetDir, '', fs, resolver);
     filesWritten.push(...written);
+  }
+
+  if (command.config.spell.enabled) {
+    const handledSpellFiles = new Set<string>();
+    for (const pack of command.packs) {
+      const fileName = spellConfigFileName(pack);
+      if (!fileName || handledSpellFiles.has(fileName)) continue;
+      handledSpellFiles.add(fileName);
+      const written = await writeSpellConfigForPack(
+        pack,
+        command.targetDir,
+        command.config.spell,
+        fs,
+        resolver,
+      );
+      if (written) filesWritten.push(written);
+    }
   }
 
   const hooksDir = `${command.targetDir}/.githooks`;

@@ -45,11 +45,14 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                  |
-| ---- | -------------- | ---------------------------- |
-| fast | pre-commit     | `gofmt -l .`, `go vet ./...` |
-| slow | pre-push       | `go test ./...`              |
-| ci   | GitHub Actions | None                         |
+| Tier | Trigger        | Command                                                                                               |
+| ---- | -------------- | ----------------------------------------------------------------------------------------------------- |
+| fast | pre-commit     | `test -z "$(gofmt -l .)"`                                                                             |
+| fast | pre-commit     | `go vet ./...`                                                                                        |
+| fast | pre-commit     | `typos` (spell)                                                                                       |
+| slow | pre-push       | `go build ./...`                                                                                      |
+| slow | pre-push       | `go test ./...`                                                                                       |
+| ci   | GitHub Actions | `test -z "$(gofmt -l .)" && go vet ./... && typos && go build ./... && go test ./...` (full pipeline) |
 
 ## Verifying
 

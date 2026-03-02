@@ -45,11 +45,15 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                            |
-| ---- | -------------- | -------------------------------------- |
-| fast | pre-commit     | `scalafmt --check`, `scalafix --check` |
-| slow | pre-push       | `sbt test`                             |
-| ci   | GitHub Actions | (quality.yml runs fast + slow gates)   |
+| Tier | Trigger        | Command                                                                                       |
+| ---- | -------------- | --------------------------------------------------------------------------------------------- |
+| fast | pre-commit     | `sbt scalafmtCheckAll`                                                                        |
+| fast | pre-commit     | `sbt "scalafix --check"`                                                                      |
+| fast | pre-commit     | `typos` (spell)                                                                               |
+| slow | pre-push       | `sbt compile`                                                                                 |
+| slow | pre-push       | `sbt test`                                                                                    |
+| ci   | GitHub Actions | `sbt scalafmtCheckAll "scalafix --check" && typos && sbt compile && sbt test` (full pipeline) |
+| ci   | GitHub Actions | `sbt stryker4s` (mutation testing)                                                            |
 
 ## Verifying
 

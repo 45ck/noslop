@@ -45,11 +45,14 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                                                                     |
-| ---- | -------------- | ------------------------------------------------------------------------------- |
-| fast | pre-commit     | `dotnet format --verify-no-changes`                                             |
-| slow | pre-push       | `dotnet build /warnaserror`, `dotnet test`                                      |
-| ci   | GitHub Actions | `dotnet format --verify-no-changes && dotnet build /warnaserror && dotnet test` |
+| Tier | Trigger        | Command                                                                                                  |
+| ---- | -------------- | -------------------------------------------------------------------------------------------------------- |
+| fast | pre-commit     | `dotnet format --verify-no-changes`                                                                      |
+| fast | pre-commit     | `typos` (spell)                                                                                          |
+| slow | pre-push       | `dotnet build /warnaserror`                                                                              |
+| slow | pre-push       | `dotnet test`                                                                                            |
+| ci   | GitHub Actions | `dotnet format --verify-no-changes && typos && dotnet build /warnaserror && dotnet test` (full pipeline) |
+| ci   | GitHub Actions | `dotnet stryker` (mutation testing)                                                                      |
 
 ## Verifying
 

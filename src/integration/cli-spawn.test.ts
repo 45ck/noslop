@@ -81,6 +81,23 @@ describe('CLI spawn tests', () => {
     }
   });
 
+  it('install with repeated --pack flags installs multiple packs', async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-multi-'));
+    try {
+      execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.email "t@t.com"', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.name "T"', { cwd: tmpDir, stdio: 'ignore' });
+
+      const result = cli(['install', '--pack', 'typescript', '--pack', 'rust', '--dir', tmpDir]);
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('TypeScript');
+      expect(result.stdout).toContain('Rust');
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   it('doctor on a typescript-initialized git repo exits 0', async () => {
     if (!distExists) return;
     const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-ts-'));

@@ -46,11 +46,15 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                                     |
-| ---- | -------------- | ----------------------------------------------- |
-| fast | pre-commit     | `./gradlew checkstyleMain`, `./gradlew pmdMain` |
-| slow | pre-push       | `./gradlew test`                                |
-| ci   | GitHub Actions | None                                            |
+| Tier | Trigger        | Command                                                                                                                                    |
+| ---- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| fast | pre-commit     | `./gradlew checkstyleMain checkstyleTest -q`                                                                                               |
+| fast | pre-commit     | `./gradlew pmdMain -q`                                                                                                                     |
+| fast | pre-commit     | `typos` (spell)                                                                                                                            |
+| slow | pre-push       | `./gradlew build -x test`                                                                                                                  |
+| slow | pre-push       | `./gradlew test`                                                                                                                           |
+| ci   | GitHub Actions | `./gradlew checkstyleMain checkstyleTest -q && ./gradlew pmdMain -q && typos && ./gradlew build -x test && ./gradlew test` (full pipeline) |
+| ci   | GitHub Actions | `./gradlew pitest` (mutation testing)                                                                                                      |
 
 ## Verifying
 

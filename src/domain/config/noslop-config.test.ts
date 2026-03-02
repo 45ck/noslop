@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createConfig, DEFAULT_PROTECTED_PATHS } from './noslop-config.js';
+import { createConfig, DEFAULT_PROTECTED_PATHS, DEFAULT_SPELL_CONFIG } from './noslop-config.js';
 
 describe('createConfig', () => {
   it('creates a config with packs and protectedPaths', () => {
@@ -28,6 +28,71 @@ describe('createConfig', () => {
   it('accepts empty protectedPaths', () => {
     const config = createConfig(['typescript'], []);
     expect(config.protectedPaths).toHaveLength(0);
+  });
+
+  it('uses DEFAULT_SPELL_CONFIG when spell is not provided', () => {
+    const config = createConfig(['typescript'], []);
+    expect(config.spell).toEqual(DEFAULT_SPELL_CONFIG);
+  });
+
+  it('applies custom spell config', () => {
+    const spell = { enabled: false, language: 'en-GB', words: ['EventSourcing'] };
+    const config = createConfig(['typescript'], [], spell);
+    expect(config.spell.enabled).toBe(false);
+    expect(config.spell.language).toBe('en-GB');
+    expect(config.spell.words).toEqual(['EventSourcing']);
+  });
+
+  it('accepts custom spell words', () => {
+    const words = ['AggregateRoot', 'DomainEvent', 'EventSourcing'];
+    const config = createConfig(['typescript'], [], { enabled: true, language: 'en', words });
+    expect(config.spell.words).toEqual(words);
+  });
+
+  it('throws when spell language is an empty string', () => {
+    expect(() =>
+      createConfig(['typescript'], [], { enabled: true, language: '', words: [] }),
+    ).toThrow('SpellConfig language must not be empty.');
+  });
+
+  it('throws when spell language is whitespace-only', () => {
+    expect(() =>
+      createConfig(['typescript'], [], { enabled: true, language: '   ', words: [] }),
+    ).toThrow('SpellConfig language must not be empty.');
+  });
+
+  it('throws when spell words contains an empty string', () => {
+    expect(() =>
+      createConfig(['typescript'], [], { enabled: true, language: 'en', words: ['valid', ''] }),
+    ).toThrow('SpellConfig words must not contain empty strings.');
+  });
+
+  it('throws when spell words contains a whitespace-only string', () => {
+    expect(() =>
+      createConfig(['typescript'], [], {
+        enabled: true,
+        language: 'en',
+        words: ['valid', '   ', 'other'],
+      }),
+    ).toThrow('SpellConfig words must not contain empty strings.');
+  });
+});
+
+describe('DEFAULT_SPELL_CONFIG', () => {
+  it('has spell enabled by default', () => {
+    expect(DEFAULT_SPELL_CONFIG.enabled).toBe(true);
+  });
+
+  it('defaults to English locale', () => {
+    expect(DEFAULT_SPELL_CONFIG.language).toBe('en');
+  });
+
+  it('starts with no seed words', () => {
+    expect(DEFAULT_SPELL_CONFIG.words).toEqual([]);
+  });
+
+  it('words array is frozen to prevent mutation of the shared default', () => {
+    expect(Object.isFrozen(DEFAULT_SPELL_CONFIG.words)).toBe(true);
   });
 });
 

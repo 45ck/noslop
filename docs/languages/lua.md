@@ -46,11 +46,13 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                          |
-| ---- | -------------- | ------------------------------------ |
-| fast | pre-commit     | `stylua --check .`, `luacheck .`     |
-| slow | pre-push       | `busted`                             |
-| ci   | GitHub Actions | (quality.yml runs fast + slow gates) |
+| Tier | Trigger        | Command                                                             |
+| ---- | -------------- | ------------------------------------------------------------------- |
+| fast | pre-commit     | `stylua --check .`                                                  |
+| fast | pre-commit     | `luacheck .`                                                        |
+| fast | pre-commit     | `typos` (spell)                                                     |
+| slow | pre-push       | `busted`                                                            |
+| ci   | GitHub Actions | `stylua --check . && luacheck . && typos && busted` (full pipeline) |
 
 ## Verifying
 

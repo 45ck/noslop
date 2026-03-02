@@ -48,11 +48,15 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command run                       |
-| ---- | -------------- | --------------------------------- |
-| fast | pre-commit     | `black --check .`, `ruff check .` |
-| slow | pre-push       | `pytest`                          |
-| ci   | GitHub Actions | None                              |
+| Tier | Trigger        | Command                                                                        |
+| ---- | -------------- | ------------------------------------------------------------------------------ |
+| fast | pre-commit     | `black --check .`                                                              |
+| fast | pre-commit     | `ruff check .`                                                                 |
+| fast | pre-commit     | `typos` (spell)                                                                |
+| slow | pre-push       | `mypy .`                                                                       |
+| slow | pre-push       | `pytest`                                                                       |
+| ci   | GitHub Actions | `black --check . && ruff check . && typos && mypy . && pytest` (full pipeline) |
+| ci   | GitHub Actions | `mutmut run` (mutation testing)                                                |
 
 ## Verifying
 
