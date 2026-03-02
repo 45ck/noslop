@@ -12,6 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get install -y clang-format cppcheck cmake
-      - run: find . -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | xargs clang-format --dry-run --Werror
+      - name: Install typos
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
+      - run: find . -name "*.c" -o -name "*.cpp" -o -name "*.h" | xargs clang-format --dry-run --Werror
       - run: cppcheck --error-exitcode=1 --quiet .
-      - run: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build && ctest --test-dir build --output-on-failure
+      - run: typos
+      - run: cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+      - run: ctest --test-dir build --output-on-failure

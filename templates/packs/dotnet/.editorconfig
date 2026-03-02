@@ -1,0 +1,29 @@
+root = true
+
+[*.{cs,vb}]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Cyclomatic complexity — noslop enforces max 10
+dotnet_diagnostic.CA1502.severity = error
+
+# Maintainability index — flag deeply unmaintainable code
+dotnet_diagnostic.CA1505.severity = error
+
+# Code quality: warn-as-error for common pitfalls
+dotnet_diagnostic.CA1062.severity = error
+dotnet_diagnostic.CA1303.severity = warning
+dotnet_diagnostic.CA2201.severity = error
+
+# Naming conventions
+dotnet_naming_rule.private_members_underscore.symbols = private_fields
+dotnet_naming_rule.private_members_underscore.style = underscore_prefix
+dotnet_naming_rule.private_members_underscore.severity = suggestion
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_prefix.required_prefix = _
+dotnet_naming_style.underscore_prefix.capitalization = camel_case

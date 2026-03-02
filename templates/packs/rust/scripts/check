@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    cargo fmt --check && cargo clippy -- -D warnings
+    cargo fmt --check && cargo clippy -- -D warnings && typos
     ;;
   slow)
-    cargo test
+    cargo build && cargo test
     ;;
   ci)
-    cargo fmt --check && cargo clippy -- -D warnings && cargo test
+    cargo fmt --check && cargo clippy -- -D warnings && typos && cargo build && cargo test
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    swift-format lint --recursive . && swiftlint lint
+    swift-format lint --recursive . && swiftlint lint && typos
     ;;
   slow)
-    swift test
+    swift build && swift test
     ;;
   ci)
-    swift-format lint --recursive . && swiftlint lint && swift test
+    swift-format lint --recursive . && swiftlint lint && typos && swift build && swift test
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

@@ -15,6 +15,12 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Install typos
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
       - run: cargo fmt --check
       - run: cargo clippy -- -D warnings
+      - run: typos
+      - run: cargo build
       - run: cargo test

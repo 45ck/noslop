@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    npx prettier --check . && npx eslint .
+    npx prettier --check . && npx eslint . && cspell --no-progress "{src}/**/*"
     ;;
   slow)
     npm test
     ;;
   ci)
-    npx prettier --check . && npx eslint . && npm test
+    npx prettier --check . && npx eslint . && cspell --no-progress "{src}/**/*" && npm test
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

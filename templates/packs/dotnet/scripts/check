@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    dotnet format --verify-no-changes
+    dotnet format --verify-no-changes && typos
     ;;
   slow)
     dotnet build /warnaserror && dotnet test
     ;;
   ci)
-    dotnet format --verify-no-changes && dotnet build /warnaserror && dotnet test
+    dotnet format --verify-no-changes && typos && dotnet build /warnaserror && dotnet test
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

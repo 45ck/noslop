@@ -11,7 +11,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - run: brew install swift-format swiftlint
+      - run: brew install swift-format swiftlint typos-cli
       - run: swift-format lint --recursive .
       - run: swiftlint lint
+      - run: typos
+      - run: swift build
       - run: swift test

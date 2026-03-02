@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    zig fmt --check src/ && zig build
+    zig fmt --check src/ && zig build && typos
     ;;
   slow)
     zig build test
     ;;
   ci)
-    zig fmt --check src/ && zig build && zig build test
+    zig fmt --check src/ && zig build && typos && zig build test
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

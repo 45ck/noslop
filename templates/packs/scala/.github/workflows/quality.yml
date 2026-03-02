@@ -16,6 +16,12 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
       - uses: sbt/setup-sbt@v1
+      - name: Install typos
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
       - run: sbt scalafmtCheckAll
       - run: sbt scalafix
+      - run: typos
+      - run: sbt compile
       - run: sbt test

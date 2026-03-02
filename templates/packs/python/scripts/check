@@ -4,13 +4,13 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    black --check . && ruff check .
+    black --check . && ruff check . && typos
     ;;
   slow)
-    pytest
+    mypy . && pytest
     ;;
   ci)
-    black --check . && ruff check . && pytest
+    black --check . && ruff check . && typos && mypy . && pytest
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

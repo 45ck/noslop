@@ -15,6 +15,11 @@ jobs:
         with:
           dotnet-version: '8.x'
       - run: dotnet restore
+      - name: Install typos
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
       - run: dotnet format --verify-no-changes
+      - run: typos
       - run: dotnet build /warnaserror
       - run: dotnet test

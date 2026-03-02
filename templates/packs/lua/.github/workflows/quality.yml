@@ -17,6 +17,11 @@ jobs:
       - uses: leafo/gh-actions-luarocks@v4
       - run: luarocks install luacheck busted
       - run: cargo install stylua || pip install stylua || true
+      - name: Install typos
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
       - run: stylua --check .
       - run: luacheck .
+      - run: typos
       - run: busted

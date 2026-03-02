@@ -1,0 +1,35 @@
+# detekt configuration — enforced by noslop
+complexity:
+  active: true
+
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 10
+
+  CognitiveComplexMethod:
+    active: true
+    threshold: 15
+
+  LongMethod:
+    active: true
+    threshold: 80
+
+  LongParameterList:
+    active: true
+    functionThreshold: 4
+    constructorThreshold: 4
+
+  LargeClass:
+    active: true
+    threshold: 350
+
+  NestedBlockDepth:
+    active: true
+    threshold: 4
+
+style:
+  active: true
+
+  MaxLineLength:
+    active: true
+    maxLineLength: 120

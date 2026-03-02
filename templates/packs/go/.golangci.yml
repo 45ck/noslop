@@ -1,0 +1,33 @@
+# golangci-lint configuration — enforced by noslop
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - gocyclo
+    - gocognit
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - lll
+    - funlen
+    - gochecknoinits
+
+linters-settings:
+  gocyclo:
+    # Cyclomatic complexity cap
+    min-complexity: 10
+
+  gocognit:
+    # Cognitive complexity cap
+    min-complexity: 15
+
+  lll:
+    line-length: 120
+
+  funlen:
+    lines: 80
+    statements: 50

@@ -15,5 +15,10 @@ jobs:
         with:
           ruby-version: '3.3'
           bundler-cache: true
+      - name: Install typos
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
       - run: bundle exec rubocop --format=quiet
+      - run: typos
       - run: bundle exec rspec

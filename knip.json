@@ -3,5 +3,5 @@
   "entry": ["src/index.ts", "src/presentation/cli.ts", "vitest.config.ts"],
   "project": ["src/**/*.ts"],
   "ignore": ["dist/**", "coverage/**", "reports/**"],
-  "ignoreDependencies": ["@vitest/coverage-v8", "chalk", "commander"]
+  "ignoreDependencies": ["@vitest/coverage-v8", "@clack/prompts", "chalk", "commander"]
 }

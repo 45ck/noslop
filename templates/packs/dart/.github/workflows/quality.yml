@@ -15,6 +15,11 @@ jobs:
         with:
           sdk: stable
       - run: dart pub get
+      - name: Install typos
+        uses: taiki-e/install-action@v2
+        with:
+          tool: typos-cli
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart analyze
+      - run: typos
       - run: dart test
