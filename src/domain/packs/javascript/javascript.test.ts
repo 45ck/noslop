@@ -14,41 +14,41 @@ describe('JAVASCRIPT_PACK', () => {
     expect(JAVASCRIPT_PACK.gates).toHaveLength(6);
   });
 
-  it('format-check gate is fast and uses prettier', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(JAVASCRIPT_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('prettier');
+    expect(g?.command).toBe('npx prettier --check .');
   });
 
-  it('lint gate is fast and uses eslint', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(JAVASCRIPT_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('eslint');
+    expect(g?.command).toBe('npx eslint .');
   });
 
-  it('spell gate is fast and uses cspell', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(JAVASCRIPT_PACK, 'spell');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('cspell');
+    expect(g?.command).toBe('cspell --no-progress "{src}/**/*"');
   });
 
-  it('test gate is slow and uses npm test', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(JAVASCRIPT_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('npm test');
+    expect(g?.command).toBe('npm test');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(JAVASCRIPT_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('prettier');
-    expect(cmd).toContain('eslint');
-    expect(cmd).toContain('cspell');
-    expect(cmd).toContain('npm test');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(JAVASCRIPT_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe(
+      'npx prettier --check . && npx eslint . && cspell --no-progress "{src}/**/*" && npm test',
+    );
   });
 
-  it('mutation gate is ci tier and uses stryker', () => {
+  it('mutation gate is ci tier with exact command', () => {
     const g = gate(JAVASCRIPT_PACK, 'mutation');
     expect(g?.tier).toBe('ci');
-    expect(g?.command).toContain('stryker');
+    expect(g?.command).toBe('npx stryker run');
   });
 });

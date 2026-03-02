@@ -14,43 +14,42 @@ describe('GO_PACK', () => {
     expect(GO_PACK.gates).toHaveLength(6);
   });
 
-  it('format-check gate is fast and uses gofmt', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(GO_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('gofmt');
+    expect(g?.command).toBe('test -z "$(gofmt -l .)"');
   });
 
-  it('lint gate is fast and uses go vet', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(GO_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('go vet');
+    expect(g?.command).toBe('go vet ./...');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(GO_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('build gate is slow and uses go build', () => {
+  it('build gate is slow with exact command', () => {
     const g = gate(GO_PACK, 'build');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('go build');
+    expect(g?.command).toBe('go build ./...');
   });
 
-  it('test gate is slow and uses go test', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(GO_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('go test');
+    expect(g?.command).toBe('go test ./...');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(GO_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('gofmt');
-    expect(cmd).toContain('go vet');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('go build');
-    expect(cmd).toContain('go test');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(GO_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe(
+      'test -z "$(gofmt -l .)" && go vet ./... && typos && go build ./... && go test ./...',
+    );
   });
 
   it('has no mutation gate', () => {

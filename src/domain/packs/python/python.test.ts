@@ -14,48 +14,45 @@ describe('PYTHON_PACK', () => {
     expect(PYTHON_PACK.gates).toHaveLength(7);
   });
 
-  it('format-check gate is fast and uses black', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(PYTHON_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('black');
+    expect(g?.command).toBe('black --check .');
   });
 
-  it('lint gate is fast and uses ruff', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(PYTHON_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('ruff');
+    expect(g?.command).toBe('ruff check .');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(PYTHON_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('typecheck gate is slow and uses mypy', () => {
+  it('typecheck gate is slow with exact command', () => {
     const g = gate(PYTHON_PACK, 'typecheck');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('mypy');
+    expect(g?.command).toBe('mypy .');
   });
 
-  it('test gate is slow and uses pytest', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(PYTHON_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('pytest');
+    expect(g?.command).toBe('pytest');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(PYTHON_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('black');
-    expect(cmd).toContain('ruff');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('mypy');
-    expect(cmd).toContain('pytest');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(PYTHON_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe('black --check . && ruff check . && typos && mypy . && pytest');
   });
 
-  it('mutation gate is ci tier and uses mutmut', () => {
+  it('mutation gate is ci tier with exact command', () => {
     const g = gate(PYTHON_PACK, 'mutation');
     expect(g?.tier).toBe('ci');
-    expect(g?.command).toContain('mutmut');
+    expect(g?.command).toBe('mutmut run');
   });
 });

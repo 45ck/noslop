@@ -14,36 +14,36 @@ describe('DART_PACK', () => {
     expect(DART_PACK.gates).toHaveLength(5);
   });
 
-  it('format-check gate is fast and uses dart format', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(DART_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('dart format');
+    expect(g?.command).toBe('dart format --output=none --set-exit-if-changed .');
   });
 
-  it('lint gate is fast and uses dart analyze', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(DART_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('dart analyze');
+    expect(g?.command).toBe('dart analyze');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(DART_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('test gate is slow and uses dart test', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(DART_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('dart test');
+    expect(g?.command).toBe('dart test');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(DART_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('dart format');
-    expect(cmd).toContain('dart analyze');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('dart test');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(DART_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe(
+      'dart format --output=none --set-exit-if-changed . && dart analyze && typos && dart test',
+    );
   });
 
   it('has no mutation gate', () => {

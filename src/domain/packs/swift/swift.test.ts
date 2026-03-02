@@ -14,43 +14,42 @@ describe('SWIFT_PACK', () => {
     expect(SWIFT_PACK.gates).toHaveLength(6);
   });
 
-  it('format-check gate is fast and uses swift-format', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(SWIFT_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('swift-format');
+    expect(g?.command).toBe('swift-format lint --recursive .');
   });
 
-  it('lint gate is fast and uses swiftlint', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(SWIFT_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('swiftlint');
+    expect(g?.command).toBe('swiftlint lint');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(SWIFT_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('build gate is slow and uses swift build', () => {
+  it('build gate is slow with exact command', () => {
     const g = gate(SWIFT_PACK, 'build');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('swift build');
+    expect(g?.command).toBe('swift build');
   });
 
-  it('test gate is slow and uses swift test', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(SWIFT_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('swift test');
+    expect(g?.command).toBe('swift test');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(SWIFT_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('swift-format');
-    expect(cmd).toContain('swiftlint');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('swift build');
-    expect(cmd).toContain('swift test');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(SWIFT_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe(
+      'swift-format lint --recursive . && swiftlint lint && typos && swift build && swift test',
+    );
   });
 
   it('has no mutation gate', () => {

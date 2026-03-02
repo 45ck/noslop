@@ -14,43 +14,42 @@ describe('ELIXIR_PACK', () => {
     expect(ELIXIR_PACK.gates).toHaveLength(6);
   });
 
-  it('format-check gate is fast and uses mix format', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(ELIXIR_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('mix format');
+    expect(g?.command).toBe('mix format --check-formatted');
   });
 
-  it('lint gate is fast and uses mix credo', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(ELIXIR_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('mix credo');
+    expect(g?.command).toBe('mix credo --strict');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(ELIXIR_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('typecheck gate is slow and uses mix dialyzer', () => {
+  it('typecheck gate is slow with exact command', () => {
     const g = gate(ELIXIR_PACK, 'typecheck');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('mix dialyzer');
+    expect(g?.command).toBe('mix dialyzer');
   });
 
-  it('test gate is slow and uses mix test', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(ELIXIR_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('mix test');
+    expect(g?.command).toBe('mix test');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(ELIXIR_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('mix format');
-    expect(cmd).toContain('mix credo');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('mix dialyzer');
-    expect(cmd).toContain('mix test');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(ELIXIR_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe(
+      'mix format --check-formatted && mix credo --strict && typos && mix dialyzer && mix test',
+    );
   });
 
   it('has no mutation gate', () => {
