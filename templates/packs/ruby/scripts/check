@@ -4,7 +4,7 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    bundle exec rubocop --format=quiet
+    bundle exec rubocop --only Layout --format=quiet && bundle exec rubocop --format=quiet
     ;;
   slow)
     bundle exec rspec

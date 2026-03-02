@@ -61,7 +61,10 @@
     "analyse",
     "pytest",
     "defmodule",
-    "rockspec"
+    "rockspec",
+    "ruff",
+    "checkstyle",
+    "mylib"
   ],
   "ignorePaths": [
     "dist/**",

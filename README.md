@@ -2,7 +2,7 @@
 
 **Enforcement-first quality gate installer.**
 
-`noslop` drops pre-commit hooks, CI workflows, and Claude Code guardrails into any existing TypeScript, Rust, or .NET repository in a single command. It does not generate project scaffolding or manage dependencies — it installs the enforcement layer on top of what you already have: git hooks that block bad commits locally, required GitHub Actions that block bad PRs centrally, and Claude Code permission rules that stop an agent from bypassing either of those layers. All three defences are wired together and verified by `noslop doctor`.
+`noslop` drops pre-commit hooks, CI workflows, and Claude Code guardrails into any existing repository in a single command. It supports 19 language packs. It does not generate project scaffolding or manage dependencies — it installs the enforcement layer on top of what you already have: git hooks that block bad commits locally, required GitHub Actions that block bad PRs centrally, and Claude Code permission rules that stop an agent from bypassing either of those layers. All three defences are wired together and verified by `noslop doctor`.
 
 ---
 
@@ -48,7 +48,7 @@ noslop init [options]
 
 Options:
   -d, --dir <path>   Target directory (default: current working directory)
-  --pack <id>        Force a specific pack: typescript | rust | dotnet
+  --pack <id>        Force a specific pack (e.g. typescript, rust, dotnet, go, python)
 ```
 
 Pack detection rules:
@@ -70,7 +70,7 @@ noslop install [options]
 
 Options:
   -d, --dir <path>   Target directory (default: current working directory)
-  --pack <id>        Force a specific pack: typescript | rust | dotnet
+  --pack <id>        Force a specific pack (e.g. typescript, rust, dotnet, go, python)
 ```
 
 ---
@@ -119,11 +119,27 @@ Run this after `noslop init` to confirm the repo is fully protected.
 
 Each pack is detected automatically from the contents of the target directory. You can override detection with `--pack`.
 
-| Pack           | Detected by                      | Fast gates                                              | Slow gates                                 | CI gate                                                                         |
-| -------------- | -------------------------------- | ------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
-| **TypeScript** | `tsconfig.json`, `package.json`  | `prettier --check`, `eslint --max-warnings=0`, `cspell` | `tsc --noEmit`, `vitest run`               | `npm run ci`                                                                    |
-| **Rust**       | `Cargo.toml`                     | `cargo fmt --check`, `cargo clippy -- -D warnings`      | `cargo test`                               | `cargo fmt --check && cargo clippy -- -D warnings && cargo test`                |
-| **.NET / C#**  | `.csproj`, `.sln`, `global.json` | `dotnet format --verify-no-changes`                     | `dotnet build /warnaserror`, `dotnet test` | `dotnet format --verify-no-changes && dotnet build /warnaserror && dotnet test` |
+| Pack           | Detected by                          | Fast gates                                              | Slow gates                                 | CI gate                                                                         |
+| -------------- | ------------------------------------ | ------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
+| **TypeScript** | `tsconfig.json`, `package.json`      | `prettier --check`, `eslint --max-warnings=0`, `cspell` | `tsc --noEmit`, `vitest run`               | `npm run ci`                                                                    |
+| **Rust**       | `Cargo.toml`                         | `cargo fmt --check`, `cargo clippy -- -D warnings`      | `cargo test`                               | `cargo fmt --check && cargo clippy -- -D warnings && cargo test`                |
+| **.NET / C#**  | `.csproj`, `.sln`, `global.json`     | `dotnet format --verify-no-changes`                     | `dotnet build /warnaserror`, `dotnet test` | `dotnet format --verify-no-changes && dotnet build /warnaserror && dotnet test` |
+| **JavaScript** | `package.json`, `tsconfig.json`      | prettier, eslint                                        | npm test                                   | —                                                                               |
+| **Go**         | `go.mod`                             | gofmt check, go vet                                     | go test                                    | —                                                                               |
+| **Python**     | `pyproject.toml`, `requirements.txt` | black check, ruff                                       | pytest                                     | —                                                                               |
+| **Java**       | `pom.xml`, `build.gradle`            | checkstyle, pmd                                         | gradle test                                | —                                                                               |
+| **PHP**        | `composer.json`                      | php-cs-fixer, phpstan                                   | phpunit                                    | —                                                                               |
+| **Ruby**       | `Gemfile`                            | rubocop layout, rubocop                                 | rspec                                      | —                                                                               |
+| **Swift**      | `Package.swift`                      | swift-format, swiftlint                                 | swift test                                 | —                                                                               |
+| **Kotlin**     | `build.gradle` + `.kt` files         | ktlint, detekt                                          | gradle test                                | —                                                                               |
+| **C/C++**      | `CMakeLists.txt`                     | clang-format, cppcheck                                  | cmake+ctest                                | —                                                                               |
+| **Scala**      | `build.sbt`                          | scalafmt check, scalafix                                | sbt test                                   | —                                                                               |
+| **Elixir**     | `mix.exs`                            | mix format, mix credo                                   | mix test                                   | —                                                                               |
+| **Dart**       | `pubspec.yaml`                       | dart format, dart analyze                               | dart test                                  | —                                                                               |
+| **Zig**        | `build.zig`                          | zig fmt check, zig build                                | zig build test                             | —                                                                               |
+| **Haskell**    | `.cabal`                             | ormolu, hlint                                           | cabal test                                 | —                                                                               |
+| **Lua**        | `.rockspec`                          | stylua check, luacheck                                  | busted                                     | —                                                                               |
+| **OCaml**      | `dune-project`                       | dune @fmt, dune @check                                  | dune runtest                               | —                                                                               |
 
 ---
 

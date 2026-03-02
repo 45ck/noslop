@@ -55,6 +55,8 @@ const ALL_PACKS: Pack[] = [
 export async function detectPacks(targetDir: string, fs: IFilesystem): Promise<Pack[]> {
   const detected: Pack[] = [];
 
+  // TypeScript detection also covers pure JavaScript repos (both use package.json).
+  // For repos that explicitly don't use TypeScript, use --pack=javascript.
   const tsIndicators = ['tsconfig.json', 'package.json'];
   for (const indicator of tsIndicators) {
     if (await fs.exists(`${targetDir}/${indicator}`)) {

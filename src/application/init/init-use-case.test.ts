@@ -149,20 +149,34 @@ describe('init use case', () => {
     expect(result.hooksConfigured).toBe(false);
   });
 
-  it('calls chmod 0o755 on every copied file', async () => {
+  it('calls chmod 0o755 on hook and script files, 0o644 on other files', async () => {
     const pack = createPack('typescript', 'TypeScript', [GATE]);
     const fs = new InMemoryFilesystem();
     fs.seed('/templates/packs/typescript/.githooks/pre-commit', '#!/bin/sh');
     fs.seed('/templates/packs/typescript/scripts/check', '#!/bin/sh');
     const runner = new InMemoryProcessRunner({ 'git config core.hooksPath .githooks': 0 });
 
-    const result = await init(makeCommand({ packs: [pack] }), fs, runner);
+    await init(makeCommand({ packs: [pack] }), fs, runner);
 
-    expect(fs.chmodCalls).toHaveLength(result.filesWritten.length);
+    expect(fs.chmodCalls).toHaveLength(2);
     for (const call of fs.chmodCalls) {
       expect(call.mode).toBe(0o755);
     }
-    expect(fs.chmodCalls.map((c) => c.path).sort()).toEqual([...result.filesWritten].sort());
+  });
+
+  it('calls chmod 0o644 on non-executable files', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/AGENTS.md', '# Agents');
+    fs.seed('/templates/packs/typescript/.github/workflows/quality.yml', 'name: quality');
+    const runner = new InMemoryProcessRunner();
+
+    await init(makeCommand({ packs: [pack] }), fs, runner);
+
+    expect(fs.chmodCalls).toHaveLength(2);
+    for (const call of fs.chmodCalls) {
+      expect(call.mode).toBe(0o644);
+    }
   });
 
   it('handles a nested directory entry — nested file appears in filesWritten at correct path', async () => {
