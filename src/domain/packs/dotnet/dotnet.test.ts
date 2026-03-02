@@ -14,41 +14,41 @@ describe('DOTNET_PACK', () => {
     expect(DOTNET_PACK.gates).toHaveLength(6);
   });
 
-  it('format-check gate is fast and uses dotnet format', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(DOTNET_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('dotnet format');
+    expect(g?.command).toBe('dotnet format --verify-no-changes');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(DOTNET_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('build gate is slow and uses dotnet build', () => {
+  it('build gate is slow with exact command', () => {
     const g = gate(DOTNET_PACK, 'build');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('dotnet build');
+    expect(g?.command).toBe('dotnet build /warnaserror');
   });
 
-  it('test gate is slow and uses dotnet test', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(DOTNET_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('dotnet test');
+    expect(g?.command).toBe('dotnet test');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(DOTNET_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('dotnet format');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('dotnet build');
-    expect(cmd).toContain('dotnet test');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(DOTNET_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe(
+      'dotnet format --verify-no-changes && typos && dotnet build /warnaserror && dotnet test',
+    );
   });
 
-  it('mutation gate is ci tier and uses dotnet stryker', () => {
+  it('mutation gate is ci tier with exact command', () => {
     const g = gate(DOTNET_PACK, 'mutation');
     expect(g?.tier).toBe('ci');
-    expect(g?.command).toContain('dotnet stryker');
+    expect(g?.command).toBe('dotnet stryker');
   });
 });

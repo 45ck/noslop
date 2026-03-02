@@ -14,43 +14,40 @@ describe('OCAML_PACK', () => {
     expect(OCAML_PACK.gates).toHaveLength(6);
   });
 
-  it('format-check gate is fast and uses dune build @fmt', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(OCAML_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('dune build @fmt');
+    expect(g?.command).toBe('dune build @fmt');
   });
 
-  it('lint gate is fast and uses dune build @check', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(OCAML_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('dune build @check');
+    expect(g?.command).toBe('dune build @check');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(OCAML_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('build gate is slow and uses dune build', () => {
+  it('build gate is slow with exact command', () => {
     const g = gate(OCAML_PACK, 'build');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('dune build');
+    expect(g?.command).toBe('dune build');
   });
 
-  it('test gate is slow and uses dune runtest', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(OCAML_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('dune runtest');
+    expect(g?.command).toBe('dune runtest');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(OCAML_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('dune build @fmt');
-    expect(cmd).toContain('@check');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('dune build');
-    expect(cmd).toContain('dune runtest');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(OCAML_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe('dune build @fmt @check && typos && dune build && dune runtest');
   });
 
   it('has no mutation gate', () => {

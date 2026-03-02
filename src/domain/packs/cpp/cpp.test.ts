@@ -14,43 +14,44 @@ describe('CPP_PACK', () => {
     expect(CPP_PACK.gates).toHaveLength(6);
   });
 
-  it('format-check gate is fast and uses clang-format', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(CPP_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('clang-format');
+    expect(g?.command).toBe(
+      'find . \\( -name "*.c" -o -name "*.cpp" -o -name "*.h" \\) | xargs clang-format --dry-run --Werror',
+    );
   });
 
-  it('lint gate is fast and uses cppcheck', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(CPP_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('cppcheck');
+    expect(g?.command).toBe('cppcheck --error-exitcode=1 --quiet .');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(CPP_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('build gate is slow and uses cmake', () => {
+  it('build gate is slow with exact command', () => {
     const g = gate(CPP_PACK, 'build');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('cmake');
+    expect(g?.command).toBe('cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build');
   });
 
-  it('test gate is slow and uses ctest', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(CPP_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('ctest');
+    expect(g?.command).toBe('ctest --test-dir build --output-on-failure');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(CPP_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('clang-format');
-    expect(cmd).toContain('cppcheck');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('cmake');
-    expect(cmd).toContain('ctest');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(CPP_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe(
+      'find . \\( -name "*.c" -o -name "*.cpp" -o -name "*.h" \\) | xargs clang-format --dry-run --Werror && cppcheck --error-exitcode=1 --quiet . && typos && cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build && ctest --test-dir build --output-on-failure',
+    );
   });
 
   it('has no mutation gate', () => {

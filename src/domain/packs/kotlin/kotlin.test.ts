@@ -14,48 +14,47 @@ describe('KOTLIN_PACK', () => {
     expect(KOTLIN_PACK.gates).toHaveLength(7);
   });
 
-  it('format-check gate is fast and uses ktlintCheck', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(KOTLIN_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('ktlintCheck');
+    expect(g?.command).toBe('./gradlew ktlintCheck');
   });
 
-  it('lint gate is fast and uses detekt', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(KOTLIN_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('detekt');
+    expect(g?.command).toBe('./gradlew detekt');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(KOTLIN_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('build gate is slow and uses gradlew build', () => {
+  it('build gate is slow with exact command', () => {
     const g = gate(KOTLIN_PACK, 'build');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('gradlew build');
+    expect(g?.command).toBe('./gradlew build -x test');
   });
 
-  it('test gate is slow and uses gradlew test', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(KOTLIN_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('gradlew test');
+    expect(g?.command).toBe('./gradlew test');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(KOTLIN_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('ktlintCheck');
-    expect(cmd).toContain('detekt');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('build -x test');
-    expect(cmd).toContain('./gradlew test');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(KOTLIN_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe(
+      './gradlew ktlintCheck detekt && typos && ./gradlew build -x test && ./gradlew test',
+    );
   });
 
-  it('mutation gate is ci tier and uses pitest', () => {
+  it('mutation gate is ci tier with exact command', () => {
     const g = gate(KOTLIN_PACK, 'mutation');
     expect(g?.tier).toBe('ci');
-    expect(g?.command).toContain('pitest');
+    expect(g?.command).toBe('./gradlew pitest');
   });
 });

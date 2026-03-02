@@ -14,36 +14,34 @@ describe('LUA_PACK', () => {
     expect(LUA_PACK.gates).toHaveLength(5);
   });
 
-  it('format-check gate is fast and uses stylua', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(LUA_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('stylua');
+    expect(g?.command).toBe('stylua --check .');
   });
 
-  it('lint gate is fast and uses luacheck', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(LUA_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('luacheck');
+    expect(g?.command).toBe('luacheck .');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(LUA_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('test gate is slow and uses busted', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(LUA_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('busted');
+    expect(g?.command).toBe('busted');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(LUA_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('stylua');
-    expect(cmd).toContain('luacheck');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('busted');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(LUA_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe('stylua --check . && luacheck . && typos && busted');
   });
 
   it('has no mutation gate', () => {

@@ -14,41 +14,39 @@ describe('RUBY_PACK', () => {
     expect(RUBY_PACK.gates).toHaveLength(6);
   });
 
-  it('format-check gate is fast and uses rubocop layout', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(RUBY_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('rubocop');
-    expect(g?.command).toContain('--only Layout');
+    expect(g?.command).toBe('bundle exec rubocop --only Layout --format=quiet');
   });
 
-  it('lint gate is fast and uses rubocop', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(RUBY_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('rubocop');
+    expect(g?.command).toBe('bundle exec rubocop --format=quiet');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(RUBY_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('test gate is slow and uses rspec', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(RUBY_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('rspec');
+    expect(g?.command).toBe('bundle exec rspec');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(RUBY_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('rubocop');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('rspec');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(RUBY_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe('bundle exec rubocop --format=quiet && typos && bundle exec rspec');
   });
 
-  it('mutation gate is ci tier and uses mutant', () => {
+  it('mutation gate is ci tier with exact command', () => {
     const g = gate(RUBY_PACK, 'mutation');
     expect(g?.tier).toBe('ci');
-    expect(g?.command).toContain('mutant');
+    expect(g?.command).toBe('bundle exec mutant run');
   });
 });

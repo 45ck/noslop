@@ -14,48 +14,47 @@ describe('RUST_PACK', () => {
     expect(RUST_PACK.gates).toHaveLength(7);
   });
 
-  it('format-check gate is fast and uses cargo fmt', () => {
+  it('format-check gate is fast with exact command', () => {
     const g = gate(RUST_PACK, 'format-check');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('cargo fmt');
+    expect(g?.command).toBe('cargo fmt --check');
   });
 
-  it('lint gate is fast and uses cargo clippy', () => {
+  it('lint gate is fast with exact command', () => {
     const g = gate(RUST_PACK, 'lint');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toContain('cargo clippy');
+    expect(g?.command).toBe('cargo clippy -- -D warnings');
   });
 
-  it('spell gate is fast and uses typos', () => {
+  it('spell gate is fast with exact command', () => {
     const g = gate(RUST_PACK, 'spell');
     expect(g?.tier).toBe('fast');
     expect(g?.command).toBe('typos');
   });
 
-  it('build gate is slow and uses cargo build', () => {
+  it('build gate is slow with exact command', () => {
     const g = gate(RUST_PACK, 'build');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('cargo build');
+    expect(g?.command).toBe('cargo build');
   });
 
-  it('test gate is slow and uses cargo test', () => {
+  it('test gate is slow with exact command', () => {
     const g = gate(RUST_PACK, 'test');
     expect(g?.tier).toBe('slow');
-    expect(g?.command).toContain('cargo test');
+    expect(g?.command).toBe('cargo test');
   });
 
-  it('ci-full includes all fast and slow commands', () => {
-    const cmd = gate(RUST_PACK, 'ci-full')?.command ?? '';
-    expect(cmd).toContain('cargo fmt');
-    expect(cmd).toContain('cargo clippy');
-    expect(cmd).toContain('typos');
-    expect(cmd).toContain('cargo build');
-    expect(cmd).toContain('cargo test');
+  it('ci-full gate is ci tier with exact command', () => {
+    const g = gate(RUST_PACK, 'ci-full');
+    expect(g?.tier).toBe('ci');
+    expect(g?.command).toBe(
+      'cargo fmt --check && cargo clippy -- -D warnings && typos && cargo build && cargo test',
+    );
   });
 
-  it('mutation gate is ci tier and uses cargo mutants', () => {
+  it('mutation gate is ci tier with exact command', () => {
     const g = gate(RUST_PACK, 'mutation');
     expect(g?.tier).toBe('ci');
-    expect(g?.command).toContain('cargo mutants');
+    expect(g?.command).toBe('cargo mutants');
   });
 });
