@@ -43,4 +43,14 @@ describe('createPack', () => {
       "Pack 'ts' has duplicate gate labels: lint.",
     );
   });
+
+  it('error message uses comma-space separator for multiple distinct duplicate labels', () => {
+    const dupeGates = [
+      createGate('lint', 'eslint .', 'fast'),
+      createGate('test', 'vitest run', 'slow'),
+      createGate('lint', 'eslint src/', 'fast'),
+      createGate('test', 'mocha', 'slow'),
+    ];
+    expect(() => createPack('ts', 'TypeScript', dupeGates)).toThrow('lint, test');
+  });
 });

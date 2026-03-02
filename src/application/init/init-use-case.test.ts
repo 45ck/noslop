@@ -340,6 +340,30 @@ describe('init use case — spell config generation', () => {
     expect(parsed['words']).toEqual(['EventSourcing', 'AggregateRoot']);
   });
 
+  it('uses en-us locale in .typos.toml when language is en-US', async () => {
+    const pack = createPack('rust', 'Rust', [SPELL_GATE_TYPOS]);
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['rust'], [], { enabled: true, language: 'en-US', words: [] });
+
+    await init(makeCommand({ packs: [pack], config }), fs, runner, makeResolver());
+
+    const content = await fs.readFile('/target/.typos.toml');
+    expect(content).toContain('locale = "en-us"');
+  });
+
+  it('passes through arbitrary locale unchanged in .typos.toml', async () => {
+    const pack = createPack('rust', 'Rust', [SPELL_GATE_TYPOS]);
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['rust'], [], { enabled: true, language: 'fr', words: [] });
+
+    await init(makeCommand({ packs: [pack], config }), fs, runner, makeResolver());
+
+    const content = await fs.readFile('/target/.typos.toml');
+    expect(content).toContain('locale = "fr"');
+  });
+
   it('uses en-GB locale in .typos.toml when language is en-GB', async () => {
     const pack = createPack('rust', 'Rust', [SPELL_GATE_TYPOS]);
     const fs = new InMemoryFilesystem();
@@ -379,6 +403,25 @@ describe('init use case — spell config generation', () => {
 
     expect(result.filesWritten).not.toContain('/target/cspell.json');
     expect(await fs.readFile('/target/cspell.json')).toBe('{}');
+  });
+
+  it('overwrites spell config file when existing file conflicts and resolver returns overwrite', async () => {
+    const pack = createPack('typescript', 'TypeScript', [SPELL_GATE_CSPELL]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/target/cspell.json', '{}');
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['typescript'], [], DEFAULT_SPELL_CONFIG);
+
+    const result = await init(
+      makeCommand({ packs: [pack], config }),
+      fs,
+      runner,
+      makeResolver('overwrite'),
+    );
+
+    expect(result.filesWritten).toContain('/target/cspell.json');
+    const content = await fs.readFile('/target/cspell.json');
+    expect((JSON.parse(content) as Record<string, unknown>)['version']).toBe('0.2');
   });
 
   it('does not write spell config when pack has no spell gate', async () => {

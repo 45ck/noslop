@@ -131,6 +131,14 @@ describe('InMemoryFilesystem', () => {
     expect(await fs.isDirectory('/ghost')).toBe(false);
   });
 
+  it('readdir includes an explicitly mkdir-d empty subdirectory', async () => {
+    const fs = new InMemoryFilesystem();
+    await fs.mkdir('/parent');
+    await fs.mkdir('/parent/empty-sub');
+    const entries = await fs.readdir('/parent');
+    expect(entries).toContain('empty-sub');
+  });
+
   it('readdir throws for non-existent path', async () => {
     const fs = new InMemoryFilesystem();
     await expect(fs.readdir('/nonexistent')).rejects.toThrow('Directory not found: /nonexistent');
