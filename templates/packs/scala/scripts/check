@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Scala
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    sbt scalafmtCheckAll && sbt scalafix
+    ;;
+  slow)
+    sbt test
+    ;;
+  ci)
+    sbt scalafmtCheckAll scalafix test
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

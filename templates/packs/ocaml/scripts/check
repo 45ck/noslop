@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for OCaml
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    dune build @fmt @check
+    ;;
+  slow)
+    dune runtest
+    ;;
+  ci)
+    dune build @fmt @check && dune runtest
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

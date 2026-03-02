@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Kotlin
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    ./gradlew ktlintCheck && ./gradlew detekt
+    ;;
+  slow)
+    ./gradlew test
+    ;;
+  ci)
+    ./gradlew ktlintCheck detekt test
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

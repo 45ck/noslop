@@ -1,0 +1,9 @@
+#!/bin/sh
+# noslop pre-commit: fast gates (rubocop)
+set -e
+
+if command -v noslop >/dev/null 2>&1; then
+  noslop check --tier=fast
+else
+  bundle exec rubocop --format=quiet
+fi

@@ -1,0 +1,17 @@
+name: quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+
+jobs:
+  quality:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install swift-format swiftlint
+      - run: swift-format lint --recursive .
+      - run: swiftlint lint
+      - run: swift test

@@ -1,0 +1,21 @@
+name: quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+      - run: composer install --no-progress --prefer-dist
+      - run: vendor/bin/php-cs-fixer check .
+      - run: vendor/bin/phpstan analyse
+      - run: vendor/bin/phpunit

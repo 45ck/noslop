@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Elixir
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    mix format --check-formatted && mix credo --strict
+    ;;
+  slow)
+    mix test
+    ;;
+  ci)
+    mix format --check-formatted && mix credo --strict && mix test
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

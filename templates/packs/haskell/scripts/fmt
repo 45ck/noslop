@@ -1,0 +1,2 @@
+#!/bin/sh
+ormolu --mode=inplace $(find . -name "*.hs" -not -path "./.stack-work/*")

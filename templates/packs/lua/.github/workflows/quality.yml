@@ -1,0 +1,22 @@
+name: quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: '5.4'
+      - uses: leafo/gh-actions-luarocks@v4
+      - run: luarocks install luacheck busted
+      - run: cargo install stylua || pip install stylua || true
+      - run: stylua --check .
+      - run: luacheck .
+      - run: busted
