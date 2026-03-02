@@ -34,13 +34,14 @@ describe('CLI spawn tests', () => {
     expect(distExists).toBe(true);
   });
 
-  it('--help exits 0 and lists all 5 commands', () => {
+  it('--help exits 0 and lists all 6 commands', () => {
     if (!distExists) return;
     const result = cli(['--help']);
     expect(result.status).toBe(0);
     const out = result.stdout;
     expect(out).toContain('init');
     expect(out).toContain('install');
+    expect(out).toContain('update');
     expect(out).toContain('check');
     expect(out).toContain('doctor');
     expect(out).toContain('setup');
@@ -93,6 +94,29 @@ describe('CLI spawn tests', () => {
       expect(result.status).toBe(0);
       expect(result.stdout).toContain('TypeScript');
       expect(result.stdout).toContain('Rust');
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('update preserves existing user config files and exits 0', async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-update-'));
+    try {
+      execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.email "t@t.com"', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.name "T"', { cwd: tmpDir, stdio: 'ignore' });
+
+      // Install first, then place a user config file
+      cli(['install', '--pack', 'typescript', '--dir', tmpDir]);
+      const userConfig = path.join(tmpDir, 'eslint.config.js');
+      await fsp.writeFile(userConfig, '// my custom config');
+
+      // update must not overwrite user config
+      const result = cli(['update', '--pack', 'typescript', '--dir', tmpDir]);
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('noslop update');
+      expect(await fsp.readFile(userConfig, 'utf8')).toBe('// my custom config');
     } finally {
       await fsp.rm(tmpDir, { recursive: true, force: true });
     }

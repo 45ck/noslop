@@ -177,6 +177,18 @@ Options:
   --no-spell         Skip the spell gate for this run
 ```
 
+### `noslop update`
+
+Re-installs hooks, CI workflows, and Claude files from the latest templates while leaving user-owned config files untouched. Use this after upgrading noslop to pick up any template changes without overwriting your project's ESLint config, `pyproject.toml`, and similar customized files.
+
+```
+noslop update [options]
+
+Options:
+  -d, --dir <path>   Target directory (default: current working directory)
+  --pack <id>        Force a specific pack; repeat for multiple (e.g. --pack typescript --pack python)
+```
+
 ### `noslop doctor`
 
 Verifies that hooks, CI workflow files, and Claude Code settings are all present and correctly wired. Exits with a non-zero code and lists every failed check if anything is missing.

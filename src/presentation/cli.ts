@@ -11,6 +11,7 @@ import {
   NodeProcessRunner,
   resolveTemplatesDir,
   AlwaysOverwriteConflictResolver,
+  AlwaysSkipConflictResolver,
 } from '../infrastructure/index.js';
 import { createConfig, DEFAULT_PROTECTED_PATHS } from '../domain/config/noslop-config.js';
 import { gatesWithoutLabel } from '../domain/gate/gate.js';
@@ -146,6 +147,45 @@ program
       console.log(`noslop install: ${packNames} — ${fileCount} files written, ${hookStatus}`);
     },
   );
+
+program
+  .command('update')
+  .description('Re-install hooks, CI, and Claude files; preserve user config files')
+  .option('-d, --dir <path>', 'target directory', process.cwd())
+  .option(
+    '--pack <id>',
+    'force a specific pack; repeat for multiple (e.g. --pack typescript --pack python)',
+    (val: string, prev: string[]) => [...prev, val],
+    [] as string[],
+  )
+  .action(async (options: { dir: string; pack: string[] }) => {
+    const fs = new NodeFilesystem();
+    const runner = new NodeProcessRunner();
+    const targetDir = options.dir;
+    const templatesDir = resolveTemplatesDir();
+
+    const packs =
+      options.pack.length > 0
+        ? ALL_PACKS.filter((p) => options.pack.includes(p.id))
+        : await detectPacks(targetDir, fs);
+
+    if (packs.length === 0) {
+      console.error(`noslop update: unknown pack(s): ${options.pack.join(', ')}`);
+      process.exit(1);
+    }
+
+    const config = createConfig(
+      packs.map((p) => p.id),
+      [...DEFAULT_PROTECTED_PATHS],
+    );
+    const resolver = new AlwaysSkipConflictResolver();
+    const result = await init({ targetDir, templatesDir, packs, config }, fs, runner, resolver);
+    const packNames = packs.map((p) => p.name).join(', ');
+    const fileCount = result.filesWritten.length;
+    const hookStatus = result.hooksConfigured ? 'hooks wired' : 'hooks skipped';
+    console.log(`noslop update: ${packNames} — ${fileCount} files updated, ${hookStatus}`);
+    console.log('User config files (eslint, pyproject, etc.) were not overwritten.');
+  });
 
 program
   .command('check')
