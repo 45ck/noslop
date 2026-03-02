@@ -94,6 +94,10 @@ your-repo/
 
 **Hooks wiring.** Hooks connect via `git config core.hooksPath .githooks`, not via a dev-dependency. They activate for every contributor without requiring `npm install` or any other setup step beyond cloning the repo.
 
+**Team rollout.** Run `noslop init` once, commit the generated files (`.githooks/`, `.github/workflows/`, `.claude/`), and push. Every contributor gets the gates automatically on `git clone` — no per-developer install of noslop is required. The hooks call the project's own toolchain (ESLint, cargo, ruff, etc.) which must already be available in each developer's environment.
+
+**Opting out.** The gates are intentionally hard to skip locally. There is no supported way to disable them per-developer. To skip the spell gate for a single run, use `noslop check --no-spell` or pass `--no-verify` to git (which noslop's own Claude guardrail will block for AI agents but not for humans). To remove a gate permanently, delete or edit the relevant hook file — though this defeats the purpose.
+
 **Claude guardrails.** The `pre-tool-use.sh` hook intercepts every Bash tool call Claude Code makes before execution and blocks commands containing `--no-verify`, `SKIP_CI`, `[skip ci]`, or ESLint config-disabling flags. Combined with the `settings.json` deny rules, this prevents any AI agent from bypassing the local gates.
 
 ---
@@ -136,8 +140,11 @@ Detects the language pack for the current repo, copies templates into it, and se
 noslop init [options]
 
 Options:
-  -d, --dir <path>   Target directory (default: current working directory)
-  --pack <id>        Force a specific pack (e.g. typescript, rust, dotnet, go, python)
+  -d, --dir <path>        Target directory (default: current working directory)
+  --pack <id>             Force a specific pack; repeat for multiple (e.g. --pack typescript --pack python)
+  --no-spell              Skip spell config generation
+  --spell-language <loc>  BCP-47 locale for the spell checker (default: en)
+  --spell-words <list>    Comma-separated seed vocabulary (e.g. EventSourcing,AggregateRoot)
 ```
 
 ### `noslop install`
@@ -148,8 +155,11 @@ Identical to `init` but non-interactive. Intended for CI pipelines and bootstrap
 noslop install [options]
 
 Options:
-  -d, --dir <path>   Target directory (default: current working directory)
-  --pack <id>        Force a specific pack (e.g. typescript, rust, dotnet, go, python)
+  -d, --dir <path>        Target directory (default: current working directory)
+  --pack <id>             Force a specific pack; repeat for multiple (e.g. --pack typescript --pack python)
+  --no-spell              Skip spell config generation
+  --spell-language <loc>  BCP-47 locale for the spell checker (default: en)
+  --spell-words <list>    Comma-separated seed vocabulary (e.g. EventSourcing,AggregateRoot)
 ```
 
 ### `noslop check`
@@ -164,6 +174,7 @@ Options:
   --tier <tier>      Gate tier to run: fast | slow | ci  (default: fast)
   --pack <id>        Limit to a specific pack
   --verbose          Show stdout/stderr for passing gates as well as failures
+  --no-spell         Skip the spell gate for this run
 ```
 
 ### `noslop doctor`

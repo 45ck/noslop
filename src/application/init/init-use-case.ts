@@ -67,15 +67,12 @@ function spellConfigFileName(pack: Pack): string | null {
 }
 
 async function writeSpellConfigForPack(
-  pack: Pack,
+  fileName: string,
   targetDir: string,
   spell: SpellConfig,
   fs: IFilesystem,
   resolver: IConflictResolver,
 ): Promise<string | null> {
-  const fileName = spellConfigFileName(pack);
-  if (!fileName) return null;
-
   const filePath = `${targetDir}/${fileName}`;
   const content = fileName === 'cspell.json' ? buildCspellJson(spell) : buildTyposToml(spell);
 
@@ -113,7 +110,7 @@ export async function init(
       if (!fileName || handledSpellFiles.has(fileName)) continue;
       handledSpellFiles.add(fileName);
       const written = await writeSpellConfigForPack(
-        pack,
+        fileName,
         command.targetDir,
         command.config.spell,
         fs,
