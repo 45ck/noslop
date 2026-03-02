@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Swift
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    swift-format lint --recursive . && swiftlint lint
+    ;;
+  slow)
+    swift test
+    ;;
+  ci)
+    swift-format lint --recursive . && swiftlint lint && swift test
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

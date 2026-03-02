@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Ruby
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    bundle exec rubocop --format=quiet
+    ;;
+  slow)
+    bundle exec rspec
+    ;;
+  ci)
+    bundle exec rubocop --format=quiet && bundle exec rspec
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Lua
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    stylua --check . && luacheck .
+    ;;
+  slow)
+    busted
+    ;;
+  ci)
+    stylua --check . && luacheck . && busted
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

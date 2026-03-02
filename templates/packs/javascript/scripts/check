@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for JavaScript
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    npx prettier --check . && npx eslint .
+    ;;
+  slow)
+    npm test
+    ;;
+  ci)
+    npx prettier --check . && npx eslint . && npm test
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

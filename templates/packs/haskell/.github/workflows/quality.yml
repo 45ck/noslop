@@ -1,0 +1,22 @@
+name: quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.8'
+          cabal-version: '3.10'
+      - run: cabal update
+      - run: cabal install ormolu hlint
+      - run: ormolu --mode=check $(find . -name "*.hs" -not -path "./.dist-newstyle/*")
+      - run: hlint .
+      - run: cabal test

@@ -8,13 +8,49 @@ import { NodeFilesystem, NodeProcessRunner, resolveTemplatesDir } from '../infra
 import { TYPESCRIPT_PACK } from '../domain/packs/typescript.js';
 import { RUST_PACK } from '../domain/packs/rust.js';
 import { DOTNET_PACK } from '../domain/packs/dotnet.js';
+import { JAVASCRIPT_PACK } from '../domain/packs/javascript.js';
+import { GO_PACK } from '../domain/packs/go.js';
+import { PYTHON_PACK } from '../domain/packs/python.js';
+import { JAVA_PACK } from '../domain/packs/java.js';
+import { PHP_PACK } from '../domain/packs/php.js';
+import { RUBY_PACK } from '../domain/packs/ruby.js';
+import { SWIFT_PACK } from '../domain/packs/swift.js';
+import { KOTLIN_PACK } from '../domain/packs/kotlin.js';
+import { CPP_PACK } from '../domain/packs/cpp.js';
+import { SCALA_PACK } from '../domain/packs/scala.js';
+import { ELIXIR_PACK } from '../domain/packs/elixir.js';
+import { DART_PACK } from '../domain/packs/dart.js';
+import { ZIG_PACK } from '../domain/packs/zig.js';
+import { HASKELL_PACK } from '../domain/packs/haskell.js';
+import { LUA_PACK } from '../domain/packs/lua.js';
+import { OCAML_PACK } from '../domain/packs/ocaml.js';
 import { createConfig, DEFAULT_PROTECTED_PATHS } from '../domain/config/noslop-config.js';
 import type { Pack } from '../domain/pack/pack.js';
 import type { GateTier } from '../domain/gate/gate.js';
 import type { IFilesystem } from '../application/ports/filesystem.js';
 import { fileURLToPath } from 'node:url';
 
-const ALL_PACKS: Pack[] = [TYPESCRIPT_PACK, RUST_PACK, DOTNET_PACK];
+const ALL_PACKS: Pack[] = [
+  TYPESCRIPT_PACK,
+  RUST_PACK,
+  DOTNET_PACK,
+  JAVASCRIPT_PACK,
+  GO_PACK,
+  PYTHON_PACK,
+  JAVA_PACK,
+  PHP_PACK,
+  RUBY_PACK,
+  SWIFT_PACK,
+  KOTLIN_PACK,
+  CPP_PACK,
+  SCALA_PACK,
+  ELIXIR_PACK,
+  DART_PACK,
+  ZIG_PACK,
+  HASKELL_PACK,
+  LUA_PACK,
+  OCAML_PACK,
+];
 
 export async function detectPacks(targetDir: string, fs: IFilesystem): Promise<Pack[]> {
   const detected: Pack[] = [];
@@ -36,6 +72,89 @@ export async function detectPacks(targetDir: string, fs: IFilesystem): Promise<P
   const hasGlobalJson = await fs.exists(`${targetDir}/global.json`);
   if (hasDotnet || hasGlobalJson) detected.push(DOTNET_PACK);
 
+  if (await fs.exists(`${targetDir}/go.mod`)) {
+    detected.push(GO_PACK);
+  }
+
+  if (
+    (await fs.exists(`${targetDir}/pyproject.toml`)) ||
+    (await fs.exists(`${targetDir}/setup.py`)) ||
+    (await fs.exists(`${targetDir}/requirements.txt`))
+  ) {
+    detected.push(PYTHON_PACK);
+  }
+
+  const hasMaven = await fs.exists(`${targetDir}/pom.xml`);
+  const hasGradle =
+    (await fs.exists(`${targetDir}/build.gradle`)) ||
+    (await fs.exists(`${targetDir}/build.gradle.kts`));
+  if (hasMaven || hasGradle) {
+    // Distinguish Java from Kotlin: check for .kt files in src/
+    const srcEntries = await fs.readdir(`${targetDir}/src`).catch(() => []);
+    const hasKotlinSrc = srcEntries.some((e) => e.endsWith('.kt'));
+    if (hasKotlinSrc) {
+      detected.push(KOTLIN_PACK);
+    } else {
+      detected.push(JAVA_PACK);
+    }
+  }
+
+  const hasComposer = await fs.exists(`${targetDir}/composer.json`);
+  if (hasComposer) {
+    detected.push(PHP_PACK);
+  }
+
+  const hasGemfile = await fs.exists(`${targetDir}/Gemfile`);
+  if (hasGemfile) {
+    detected.push(RUBY_PACK);
+  }
+
+  const hasPackageSwift = await fs.exists(`${targetDir}/Package.swift`);
+  if (hasPackageSwift) {
+    detected.push(SWIFT_PACK);
+  }
+
+  const hasCMakeLists = await fs.exists(`${targetDir}/CMakeLists.txt`);
+  if (hasCMakeLists) {
+    detected.push(CPP_PACK);
+  }
+
+  const hasBuildSbt = await fs.exists(`${targetDir}/build.sbt`);
+  if (hasBuildSbt) {
+    detected.push(SCALA_PACK);
+  }
+
+  const hasMixExs = await fs.exists(`${targetDir}/mix.exs`);
+  if (hasMixExs) {
+    detected.push(ELIXIR_PACK);
+  }
+
+  const hasPubspec = await fs.exists(`${targetDir}/pubspec.yaml`);
+  if (hasPubspec) {
+    detected.push(DART_PACK);
+  }
+
+  const hasBuildZig = await fs.exists(`${targetDir}/build.zig`);
+  if (hasBuildZig) {
+    detected.push(ZIG_PACK);
+  }
+
+  const hasCabalFile = rootEntries.some((e) => e.endsWith('.cabal'));
+  if (hasCabalFile) {
+    detected.push(HASKELL_PACK);
+  }
+
+  const hasLuaRock =
+    (await fs.exists(`${targetDir}/rockspec`)) || rootEntries.some((e) => e.endsWith('.rockspec'));
+  if (hasLuaRock) {
+    detected.push(LUA_PACK);
+  }
+
+  const hasDuneProject = await fs.exists(`${targetDir}/dune-project`);
+  if (hasDuneProject) {
+    detected.push(OCAML_PACK);
+  }
+
   return detected.length > 0 ? detected : [TYPESCRIPT_PACK];
 }
 
@@ -47,7 +166,7 @@ program
   .command('init')
   .description('Detect language packs, drop templates, and wire git hooks')
   .option('-d, --dir <path>', 'target directory', process.cwd())
-  .option('--pack <id>', 'force a specific pack (typescript|rust|dotnet)')
+  .option('--pack <id>', 'force a specific pack by id (e.g. typescript, rust, python, go)')
   .action(async (options: { dir: string; pack?: string }) => {
     const fs = new NodeFilesystem();
     const runner = new NodeProcessRunner();
@@ -90,7 +209,7 @@ program
   .command('install')
   .description('Non-interactive / idempotent init (for CI and bootstrap scripts)')
   .option('-d, --dir <path>', 'target directory', process.cwd())
-  .option('--pack <id>', 'force a specific pack (typescript|rust|dotnet)')
+  .option('--pack <id>', 'force a specific pack by id (e.g. typescript, rust, python, go)')
   .action(async (options: { dir: string; pack?: string }) => {
     const fs = new NodeFilesystem();
     const runner = new NodeProcessRunner();

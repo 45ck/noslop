@@ -1,0 +1,10 @@
+#!/bin/sh
+# noslop pre-commit: fast gates (clang-format, cppcheck)
+set -e
+
+if command -v noslop >/dev/null 2>&1; then
+  noslop check --tier=fast
+else
+  find . -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | xargs clang-format --dry-run --Werror
+  cppcheck --error-exitcode=1 --quiet .
+fi

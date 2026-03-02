@@ -1,0 +1,9 @@
+#!/bin/sh
+# noslop pre-commit: fast gates (ormolu, hlint)
+set -e
+
+if command -v noslop >/dev/null 2>&1; then
+  noslop check --tier=fast
+else
+  ormolu --mode=check $(find . -name "*.hs" -not -path "./.stack-work/*") && hlint .
+fi

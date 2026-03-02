@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for PHP
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    vendor/bin/php-cs-fixer check . && vendor/bin/phpstan analyse
+    ;;
+  slow)
+    vendor/bin/phpunit
+    ;;
+  ci)
+    vendor/bin/php-cs-fixer check . && vendor/bin/phpstan analyse && vendor/bin/phpunit
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

@@ -1,0 +1,22 @@
+#!/bin/sh
+# noslop check script for C/C++
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    find . -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | xargs clang-format --dry-run --Werror
+    cppcheck --error-exitcode=1 --quiet .
+    ;;
+  slow)
+    cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build && ctest --test-dir build --output-on-failure
+    ;;
+  ci)
+    find . -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | xargs clang-format --dry-run --Werror
+    cppcheck --error-exitcode=1 --quiet .
+    cmake -B build && cmake --build build && ctest --test-dir build --output-on-failure
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

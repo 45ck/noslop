@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Dart
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    dart format --output=none --set-exit-if-changed . && dart analyze
+    ;;
+  slow)
+    dart test
+    ;;
+  ci)
+    dart format --output=none --set-exit-if-changed . && dart analyze && dart test
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

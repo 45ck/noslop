@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Java
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    ./gradlew checkstyleMain checkstyleTest -q && ./gradlew pmdMain -q
+    ;;
+  slow)
+    ./gradlew test
+    ;;
+  ci)
+    ./gradlew checkstyleMain checkstyleTest pmdMain test
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

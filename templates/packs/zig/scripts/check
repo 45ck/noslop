@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Zig
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    zig fmt --check src/ && zig build
+    ;;
+  slow)
+    zig build test
+    ;;
+  ci)
+    zig fmt --check src/ && zig build && zig build test
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

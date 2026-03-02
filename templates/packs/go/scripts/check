@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Go
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    test -z "$(gofmt -l .)" && go vet ./...
+    ;;
+  slow)
+    go test ./...
+    ;;
+  ci)
+    test -z "$(gofmt -l .)" && go vet ./... && go test ./...
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac

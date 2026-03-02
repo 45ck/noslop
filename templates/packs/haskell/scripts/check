@@ -1,0 +1,19 @@
+#!/bin/sh
+# noslop check script for Haskell
+TIER="${NOSLOP_TIER:-${1:-fast}}"
+
+case "$TIER" in
+  fast)
+    ormolu --mode=check $(find . -name "*.hs" -not -path "./.stack-work/*") && hlint .
+    ;;
+  slow)
+    cabal test
+    ;;
+  ci)
+    ormolu --mode=check $(find . -name "*.hs" -not -path "./.stack-work/*") && hlint . && cabal test
+    ;;
+  *)
+    echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2
+    exit 1
+    ;;
+esac
