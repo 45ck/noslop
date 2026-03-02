@@ -18,8 +18,13 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: typos-cli
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --config .golangci.yml
       - run: test -z "$(gofmt -l .)"
-      - run: go vet ./...
+      - run: golangci-lint run
       - run: typos
       - run: go build ./...
       - run: go test ./...

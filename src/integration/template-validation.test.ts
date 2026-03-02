@@ -256,6 +256,15 @@ describe('config files — php', () => {
     const content = readTemplate('php', 'phpstan.neon');
     expect(content).toContain('level: 8');
   });
+
+  it('phpmd.xml exists', () => {
+    expect(templateExists('php', 'phpmd.xml')).toBe(true);
+  });
+
+  it('phpmd.xml contains CyclomaticComplexity', () => {
+    const content = readTemplate('php', 'phpmd.xml');
+    expect(content).toContain('CyclomaticComplexity');
+  });
 });
 
 describe('config files — go', () => {
@@ -266,6 +275,11 @@ describe('config files — go', () => {
   it('.golangci.yml configures gocyclo', () => {
     const content = readTemplate('go', '.golangci.yml');
     expect(content).toContain('gocyclo');
+  });
+
+  it('.golangci.yml configures revive argument-limit', () => {
+    const content = readTemplate('go', '.golangci.yml');
+    expect(content).toContain('argument-limit');
   });
 });
 

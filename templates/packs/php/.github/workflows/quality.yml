@@ -22,5 +22,6 @@ jobs:
           tool: typos-cli
       - run: vendor/bin/php-cs-fixer check .
       - run: vendor/bin/phpstan analyse
+      - run: vendor/bin/phpmd . xml phpmd.xml
       - run: typos
       - run: vendor/bin/phpunit

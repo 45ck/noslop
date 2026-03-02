@@ -15,11 +15,16 @@ linters:
     - lll
     - funlen
     - gochecknoinits
+    - revive
+    - cyclop
 
 linters-settings:
   gocyclo:
     # Cyclomatic complexity cap
     min-complexity: 10
+
+  cyclop:
+    max-complexity: 10
 
   gocognit:
     # Cognitive complexity cap
@@ -31,3 +36,20 @@ linters-settings:
   funlen:
     lines: 80
     statements: 50
+
+  revive:
+    rules:
+      - name: argument-limit
+        arguments: [4]
+      - name: function-length
+        arguments: [80, 0]
+      - name: cyclomatic
+        arguments: [10]
+      - name: cognitive-complexity
+        arguments: [15]
+      - name: max-public-structs
+        arguments: [10]
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

@@ -76,6 +76,7 @@
     "pitest",
     "golangci",
     "gocyclo",
+    "phpmd",
     "gocognit",
     "luacheck",
     "luacheckrc",
@@ -87,7 +88,13 @@
     "rubocop",
     "swiftlint",
     "phpstan",
-    "golangci"
+    "golangci",
+    "sonarjs",
+    "pylint",
+    "maintidx",
+    "Wunused",
+    "Scalastyle",
+    "ocamlformat"
   ],
   "ignorePaths": [
     "dist/**",
