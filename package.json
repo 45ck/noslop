@@ -1,6 +1,6 @@
 {
   "name": "@45ck/noslop",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Enforcement-first quality gate installer for TypeScript, Rust, C#, JavaScript, Go, Python, Java, PHP, Ruby, Swift, Kotlin, C++, Scala, Elixir, Dart, Zig, Haskell, Lua, and OCaml.",
   "license": "MIT",
   "type": "module",
@@ -8,7 +8,7 @@
     "node": ">=22.0.0"
   },
   "bin": {
-    "noslop": "./dist/presentation/cli.js"
+    "noslop": "dist/presentation/cli.js"
   },
   "files": [
     "dist/**",
