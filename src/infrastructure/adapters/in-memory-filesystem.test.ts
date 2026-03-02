@@ -141,4 +141,22 @@ describe('InMemoryFilesystem', () => {
     const result = await fs.exists('/completely/unknown/path');
     expect(result).toBe(false);
   });
+
+  it('chmod records calls with path and mode', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/script.sh', '#!/bin/sh');
+    await fs.chmod('/script.sh', 0o755);
+    expect(fs.chmodCalls).toEqual([{ path: '/script.sh', mode: 0o755 }]);
+  });
+
+  it('chmod accumulates multiple calls in order', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/a.sh', '');
+    fs.seed('/b.sh', '');
+    await fs.chmod('/a.sh', 0o755);
+    await fs.chmod('/b.sh', 0o644);
+    expect(fs.chmodCalls).toHaveLength(2);
+    expect(fs.chmodCalls[0]).toEqual({ path: '/a.sh', mode: 0o755 });
+    expect(fs.chmodCalls[1]).toEqual({ path: '/b.sh', mode: 0o644 });
+  });
 });

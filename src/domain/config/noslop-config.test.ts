@@ -12,6 +12,14 @@ describe('createConfig', () => {
     expect(() => createConfig([], [])).toThrow('NoslopConfig must include at least one pack.');
   });
 
+  it('throws when any pack id is an empty string', () => {
+    expect(() => createConfig([''], [])).toThrow('must not be empty strings');
+  });
+
+  it('throws when any pack id is whitespace-only', () => {
+    expect(() => createConfig(['typescript', '  '], [])).toThrow('must not be empty strings');
+  });
+
   it('accepts multiple packs', () => {
     const config = createConfig(['typescript', 'rust', 'dotnet'], []);
     expect(config.packs).toHaveLength(3);

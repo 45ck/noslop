@@ -58,4 +58,27 @@ describe('detectPacks', () => {
 
     expect(packs).toEqual([TYPESCRIPT_PACK]);
   });
+
+  it('detects TypeScript and Rust packs together in a monorepo', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/project/tsconfig.json', '{}');
+    fs.seed('/project/Cargo.toml', '');
+
+    const packs = await detectPacks('/project', fs);
+
+    expect(packs).toContain(TYPESCRIPT_PACK);
+    expect(packs).toContain(RUST_PACK);
+    expect(packs).toHaveLength(2);
+  });
+
+  it('detects all three packs together in a polyglot repo', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/project/tsconfig.json', '{}');
+    fs.seed('/project/Cargo.toml', '');
+    fs.seed('/project/MyApp.csproj', '');
+
+    const packs = await detectPacks('/project', fs);
+
+    expect(packs).toHaveLength(3);
+  });
 });
