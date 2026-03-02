@@ -1,99 +1,220 @@
-# vibe-ts
+# noslop
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/banner.dark.png" />
-  <source media="(prefers-color-scheme: light)" srcset="assets/banner.light.png" />
-  <img src="assets/banner.light.png" alt="vibe-ts banner" width="100%" />
-</picture>
+**Enforcement-first quality gate installer.**
 
-Quality-first TypeScript template for AI-assisted development. DDD architecture with enforced boundaries, mutation testing, and comprehensive linting.
+`noslop` drops pre-commit hooks, CI workflows, and Claude Code guardrails into any existing TypeScript, Rust, or .NET repository in a single command. It does not generate project scaffolding or manage dependencies — it installs the enforcement layer on top of what you already have: git hooks that block bad commits locally, required GitHub Actions that block bad PRs centrally, and Claude Code permission rules that stop an agent from bypassing either of those layers. All three defences are wired together and verified by `noslop doctor`.
 
-## Quick setup
+---
 
-1. Click "Use this template" on GitHub (or clone directly).
-2. Search and replace `vibe-ts` with your project name in `package.json`.
-3. Run `npm install`.
-4. Run `npm run ci` to verify everything passes.
-5. Delete the sample code in `src/domain/greeting/`, `src/application/greet/`,
-   and `src/infrastructure/adapters/in-memory-greeting-repository.ts`.
-6. Start building your domain in `src/domain/`.
+## Install
 
-## Architecture
-
-This project follows Domain-Driven Design with enforced layer boundaries:
-
-```
-src/domain/          Pure business logic. Zero external dependencies.
-src/application/     Use cases and port interfaces. Depends only on domain.
-src/infrastructure/  Adapters for external systems. Implements ports.
-src/presentation/    HTTP routes, CLI, or UI. Entry points.
+```sh
+npm install -g @45ck/noslop
 ```
 
-Dependencies flow inward only:
+Or run without installing:
 
-```mermaid
-graph TD
-    P[presentation] --> A[application]
-    P --> D[domain]
-    I[infrastructure] --> A
-    I --> D
-    A --> D
+```sh
+npx @45ck/noslop init
 ```
 
-These boundaries are enforced at build time by dependency-cruiser. A domain file importing from infrastructure will fail CI.
+**Requirements:** Node 22+, git, `jq` (required by the Claude Code hook for secure JSON parsing).
 
-## Quality gates
+---
 
-| Gate             | Command                 | When          |
-| ---------------- | ----------------------- | ------------- |
-| Type check       | `npm run typecheck`     | pre-push      |
-| Lint             | `npm run lint`          | pre-commit    |
-| Format           | `npm run format:check`  | pre-commit    |
-| Spelling         | `npm run spell`         | pre-commit    |
-| Architecture     | `npm run depcruise`     | CI            |
-| Dead code        | `npm run knip`          | CI            |
-| Unit tests       | `npm run test:coverage` | CI            |
-| Mutation testing | `npm run mutation`      | nightly       |
-| Security audit   | `npm run audit:high`    | CI            |
-| **All gates**    | **`npm run ci`**        | **pre-merge** |
+## Quick start
 
-## Adding a new feature
+```sh
+# 1. Go to your existing repo
+cd your-repo
 
-1. Define the entity or value object in `src/domain/`. Use branded primitives for IDs.
-2. Define the port (interface) in `src/application/ports/`.
-3. Write the use case in `src/application/`. It depends only on ports and domain.
-4. Implement the adapter in `src/infrastructure/adapters/`. Start with an in-memory double.
-5. Wire it in `src/presentation/` (HTTP route, CLI command, etc.).
-6. Write colocated `.test.ts` files at every layer.
+# 2. Install quality gates
+noslop init
 
-## Working with AI assistants
+# 3. Verify everything is wired
+noslop doctor
+```
 
-This template includes a `CLAUDE.md` file that teaches AI coding assistants to follow the project's architecture and quality standards. The `.claude/` directory includes:
+---
 
-- **settings.json** -- permission boundaries (blocks reading secrets, force push)
-- **hooks/pre-tool-use.sh** -- blocks `--no-verify` and `SKIP_CI` bypass attempts
-- **skills/** -- reusable quality check, architecture guard, and review workflows
+## Commands
 
-## Customizing thresholds
+### `noslop init`
 
-All thresholds are in config files you own:
+Detects the language pack for the current repo, copies templates into it, and sets `git config core.hooksPath .githooks`.
 
-- **Complexity limits**: `eslint.config.mjs` (complexity, max-depth, max-lines-per-function, etc.)
-- **Coverage minimums**: `vitest.config.ts` (per-layer thresholds)
-- **Mutation score**: `stryker.conf.json` (high/low/break thresholds)
-- **Architecture rules**: `.dependency-cruiser.cjs` (forbidden dependency patterns)
+```
+noslop init [options]
 
-Start with the defaults. Tighten them as your codebase matures.
+Options:
+  -d, --dir <path>   Target directory (default: current working directory)
+  --pack <id>        Force a specific pack: typescript | rust | dotnet
+```
 
-## Adding E2E tests (optional)
+Pack detection rules:
 
-If your project includes a web UI:
+- **TypeScript** — `tsconfig.json` or `package.json` present
+- **Rust** — `Cargo.toml` present
+- **.NET** — any `.csproj` / `.sln` file, or `global.json` present
 
-1. `npm install -D @playwright/test`
-2. `npx playwright install chromium`
-3. Create `e2e/` directory and `playwright.config.ts`
-4. Add to eslint.config.mjs ignores: `'e2e/**'`
-5. Add npm scripts: `test:e2e`, `e2e:install`
+If none of the above are found, the TypeScript pack is used as a default.
+
+---
+
+### `noslop install`
+
+Identical to `init` but non-interactive. Intended for CI pipelines and bootstrap scripts. Exits silently on success with a one-line summary.
+
+```
+noslop install [options]
+
+Options:
+  -d, --dir <path>   Target directory (default: current working directory)
+  --pack <id>        Force a specific pack: typescript | rust | dotnet
+```
+
+---
+
+### `noslop check`
+
+Runs the quality gates for a given tier against the detected packs.
+
+```
+noslop check [options]
+
+Options:
+  -d, --dir <path>   Target directory (default: current working directory)
+  --tier <tier>      Gate tier to run: fast | slow | ci  (default: fast)
+  --pack <id>        Limit to a specific pack
+  --verbose          Show stdout/stderr for passing gates as well as failures
+```
+
+Examples:
+
+```sh
+noslop check --tier=fast
+noslop check --tier=slow
+noslop check --tier=ci --verbose
+noslop check --tier=fast --pack=typescript
+```
+
+---
+
+### `noslop doctor`
+
+Verifies that hooks, CI workflow files, and Claude Code settings are all present and correctly wired. Exits with a non-zero code and lists every failed check if anything is missing.
+
+```
+noslop doctor [options]
+
+Options:
+  -d, --dir <path>   Target directory (default: current working directory)
+```
+
+Run this after `noslop init` to confirm the repo is fully protected.
+
+---
+
+## Language packs
+
+Each pack is detected automatically from the contents of the target directory. You can override detection with `--pack`.
+
+| Pack           | Detected by                      | Fast gates                                              | Slow gates                                 | CI gate                                                                         |
+| -------------- | -------------------------------- | ------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
+| **TypeScript** | `tsconfig.json`, `package.json`  | `prettier --check`, `eslint --max-warnings=0`, `cspell` | `tsc --noEmit`, `vitest run`               | `npm run ci`                                                                    |
+| **Rust**       | `Cargo.toml`                     | `cargo fmt --check`, `cargo clippy -- -D warnings`      | `cargo test`                               | `cargo fmt --check && cargo clippy -- -D warnings && cargo test`                |
+| **.NET / C#**  | `.csproj`, `.sln`, `global.json` | `dotnet format --verify-no-changes`                     | `dotnet build /warnaserror`, `dotnet test` | `dotnet format --verify-no-changes && dotnet build /warnaserror && dotnet test` |
+
+---
+
+## What gets dropped into your repo
+
+`noslop init` copies the following files. Existing files are overwritten so the installed gates remain authoritative.
+
+```
+your-repo/
+├── .githooks/
+│   ├── pre-commit      # Runs fast gates before every commit
+│   ├── pre-push        # Runs slow gates before every push
+│   └── commit-msg      # Enforces Conventional Commits; blocks [skip ci] patterns
+├── .github/
+│   └── workflows/
+│       ├── quality.yml     # Required CI check: full gate suite on PRs and pushes to main
+│       └── guardrails.yml  # Blocks PRs that touch protected files without noslop-approved label
+├── .claude/
+│   ├── settings.json       # Denies --no-verify, --force, and edits to protected paths
+│   └── hooks/
+│       └── pre-tool-use.sh # Intercepts Claude Code tool calls; blocks bypass patterns
+├── scripts/
+│   ├── check               # Wrapper: noslop check --tier=fast
+│   ├── fmt                 # Wrapper: runs the formatter for the detected pack
+│   ├── lint                # Wrapper: runs the linter for the detected pack
+│   └── test                # Wrapper: runs the test suite for the detected pack
+└── AGENTS.md               # Plain-language rules for AI coding agents in this repo
+```
+
+**Protected paths** — these paths may not be edited by Claude Code or modified in a PR without the `noslop-approved` label applied by a human reviewer:
+
+- `.githooks/`
+- `.github/workflows/`
+- `.claude/settings.json`
+- `.claude/hooks/`
+
+---
+
+## Tier system
+
+Gates are grouped into three tiers, each mapped to a point in the development workflow.
+
+| Tier   | Trigger                                      | Purpose                                                             |
+| ------ | -------------------------------------------- | ------------------------------------------------------------------- |
+| `fast` | `pre-commit` hook — before every commit      | Format, lint, spell check. Must complete in a few seconds.          |
+| `slow` | `pre-push` hook — before every push          | Type checking and full test suite. Slower but still runs locally.   |
+| `ci`   | GitHub Actions — on PRs and pushes to `main` | Full pipeline. Authoritative: cannot be skipped by any local trick. |
+
+The hooks installed by `noslop init` call `noslop check --tier=fast` and `noslop check --tier=slow` when the `noslop` binary is on `PATH`, and fall back to the native toolchain commands if it is not.
+
+---
+
+## The --verbose flag
+
+By default, `noslop check` only prints stdout and stderr for gates that fail. Pass `--verbose` to see output for every gate regardless of outcome. This is useful when diagnosing why a gate is slow, confirming which commands are actually running, or auditing a clean run end-to-end.
+
+```sh
+noslop check --tier=slow --verbose
+```
+
+---
+
+## Defence-in-depth model
+
+noslop installs three independent enforcement layers. Each layer can catch bypasses that slip past the previous one.
+
+**Layer 1 — Local git hooks**
+
+The `pre-commit` hook runs fast gates on every `git commit`. The `pre-push` hook runs slow gates on every `git push`. The `commit-msg` hook rejects commit messages that contain CI-bypass patterns (`[skip ci]`, `skip-checks`, `--no-verify`) or that do not follow Conventional Commits format. Hooks are wired via `git config core.hooksPath .githooks`, not via a dev-dependency, so they activate for every contributor without requiring `npm install` or any other setup step.
+
+**Layer 2 — CI required checks**
+
+`quality.yml` runs on every pull request and on pushes to `main`. Configured as a required status check, it cannot be skipped by bypassing local hooks or using `--no-verify`. `guardrails.yml` adds a second required check that triggers whenever a PR modifies the protected paths (`.githooks/`, `.github/workflows/`, `.claude/`), blocking that PR unless a human reviewer has applied the `noslop-approved` label.
+
+**Layer 3 — Claude Code guardrails**
+
+`.claude/settings.json` denies the agent permission to run commands containing `--no-verify`, `--force`, or `git push -f`, and denies it permission to edit any of the protected paths. `.claude/hooks/pre-tool-use.sh` intercepts every Bash tool call before execution and blocks commands containing `--no-verify`, `SKIP_CI`, `[skip ci]`, or ESLint config-disabling flags. `AGENTS.md` states all rules in plain language so that any AI coding agent working in the repo receives explicit written instructions at the start of each session.
+
+---
+
+## Requirements
+
+| Requirement | Version     | Notes                                                                                                     |
+| ----------- | ----------- | --------------------------------------------------------------------------------------------------------- |
+| Node.js     | 22 or later | Required to run `noslop`                                                                                  |
+| git         | any recent  | Required for hook wiring (`core.hooksPath`)                                                               |
+| `jq`        | any recent  | Required by `.claude/hooks/pre-tool-use.sh`; the hook blocks all Claude Code tool calls if `jq` is absent |
+
+Language toolchains (TypeScript compiler, ESLint, Prettier, Cargo, .NET SDK) must already be present in the target repo. noslop installs the enforcement layer; it does not install the tools themselves.
+
+---
 
 ## License
 

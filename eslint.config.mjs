@@ -135,6 +135,9 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-empty-function': 'off',
+      // Tests deliberately throw non-Error values to verify production catch branches
+      // (e.g. checking `err instanceof Error ? err.message : String(err)` paths).
+      '@typescript-eslint/only-throw-error': 'off',
     },
   },
 
