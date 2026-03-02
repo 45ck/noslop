@@ -64,8 +64,11 @@ export class InMemoryFilesystem implements IFilesystem {
     return this.dirs.has(path) || [...this.files.keys()].some((f) => f.startsWith(`${path}/`));
   }
 
-  async chmod(_path: string, _mode: number): Promise<void> {
-    // no-op: in-memory filesystem has no real permissions
+  readonly chmodCalls: { path: string; mode: number }[] = [];
+
+  async chmod(path: string, mode: number): Promise<void> {
+    // no-op for permissions, but records calls so tests can assert chmod was invoked
+    this.chmodCalls.push({ path, mode });
   }
 
   private ensureParentDirs(path: string): void {

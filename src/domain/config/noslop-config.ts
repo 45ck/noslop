@@ -12,6 +12,9 @@ export function createConfig(
   if (packs.length === 0) {
     throw new Error('NoslopConfig must include at least one pack.');
   }
+  if (packs.some((p) => p.trim().length === 0)) {
+    throw new Error('NoslopConfig pack ids must not be empty strings.');
+  }
   return { packs: packs as PackId[], protectedPaths };
 }
 

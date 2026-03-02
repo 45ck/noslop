@@ -65,7 +65,7 @@ describe('init use case', () => {
     expect(result.filesWritten).toEqual(['/target/AGENTS.md']);
   });
 
-  it('copies nested template files to correct target paths (MIS2)', async () => {
+  it('copies nested template files to correct target paths', async () => {
     const pack = createPack('typescript', 'TypeScript', [GATE]);
     const fs = new InMemoryFilesystem();
     fs.seed('/templates/packs/typescript/.githooks/pre-commit', '#!/bin/sh');
@@ -147,6 +147,22 @@ describe('init use case', () => {
 
     const result = await init(makeCommand({ packs: [pack] }), fs, runner);
     expect(result.hooksConfigured).toBe(false);
+  });
+
+  it('calls chmod 0o755 on every copied file', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/.githooks/pre-commit', '#!/bin/sh');
+    fs.seed('/templates/packs/typescript/scripts/check', '#!/bin/sh');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath .githooks': 0 });
+
+    const result = await init(makeCommand({ packs: [pack] }), fs, runner);
+
+    expect(fs.chmodCalls).toHaveLength(result.filesWritten.length);
+    for (const call of fs.chmodCalls) {
+      expect(call.mode).toBe(0o755);
+    }
+    expect(fs.chmodCalls.map((c) => c.path).sort()).toEqual([...result.filesWritten].sort());
   });
 
   it('handles a nested directory entry — nested file appears in filesWritten at correct path', async () => {
