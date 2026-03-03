@@ -1,0 +1,28 @@
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+  "D",      # docstring rules — enable when the project matures
+  "ANN",    # type annotation rules — use mypy for this
+  "COM812", # trailing comma (conflicts with formatter)
+  "ISC001", # implicit string concat (conflicts with formatter)
+]
+
+[tool.ruff.lint.mccabe]
+# Cyclomatic complexity cap — enforced by noslop
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+# Function size caps — enforced by noslop
+max-args = 4
+max-branches = 12
+max-statements = 50
+max-returns = 4
+max-bool-expr = 4
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true

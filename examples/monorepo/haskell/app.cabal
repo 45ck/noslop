@@ -1,0 +1,9 @@
+cabal-version: 3.0
+name:          monorepo-haskell
+version:       0.1.0.0
+synopsis:      Hello world Haskell example
+
+executable app
+  main-is:          Main.hs
+  build-depends:    base ^>=4.18
+  default-language: GHC2021

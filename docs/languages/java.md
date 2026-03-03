@@ -10,7 +10,7 @@
 ## Install
 
 ```sh
-noslop init --pack java   # or: auto-detected from pom.xml or build.gradle
+noslop init --pack java   # or: auto-detected from pom.xml, build.gradle, or build.gradle.kts (no .kt files in src/)
 noslop doctor
 ```
 

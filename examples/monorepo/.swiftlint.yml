@@ -1,0 +1,40 @@
+# SwiftLint configuration — enforced by noslop
+disabled_rules: []
+
+opt_in_rules:
+  - cyclomatic_complexity
+  - function_body_length
+  - file_length
+  - nesting
+
+cyclomatic_complexity:
+  warning: 8
+  error: 10
+
+function_body_length:
+  warning: 60
+  error: 80
+
+file_length:
+  warning: 300
+  error: 350
+
+line_length:
+  warning: 120
+  error: 150
+
+function_parameter_count:
+  warning: 4
+  error: 5
+
+type_body_length:
+  warning: 300
+  error: 350
+
+nesting:
+  type_level:
+    warning: 3
+    error: 4
+  function_level:
+    warning: 3
+    error: 4

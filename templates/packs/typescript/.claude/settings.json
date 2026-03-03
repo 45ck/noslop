@@ -7,7 +7,23 @@
       "Edit(.githooks/**)",
       "Edit(.github/workflows/**)",
       "Edit(.claude/settings.json)",
-      "Edit(.claude/hooks/**)"
+      "Edit(.claude/hooks/**)",
+      "Edit(eslint.config.js)",
+      "Edit(eslint.config.mjs)",
+      "Edit(prettier.config.mjs)",
+      "Edit(tsconfig.json)",
+      "Edit(tsconfig.build.json)",
+      "Edit(vitest.config.ts)",
+      "Edit(.dependency-cruiser.mjs)",
+      "Edit(knip.config.ts)",
+      "Write(eslint.config.js)",
+      "Write(eslint.config.mjs)",
+      "Write(prettier.config.mjs)",
+      "Write(tsconfig.json)",
+      "Write(tsconfig.build.json)",
+      "Write(vitest.config.ts)",
+      "Write(.dependency-cruiser.mjs)",
+      "Write(knip.config.ts)"
     ]
   }
 }

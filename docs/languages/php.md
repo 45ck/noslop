@@ -11,6 +11,7 @@
 | php-cs-fixer | latest  | `composer global require friendsofphp/php-cs-fixer` |
 | PHPStan      | latest  | `composer require --dev phpstan/phpstan`            |
 | PHPUnit      | latest  | `composer require --dev phpunit/phpunit`            |
+| PHPMD        | latest  | `composer require --dev phpmd/phpmd`                |
 
 ## Install
 
@@ -34,14 +35,20 @@ noslop doctor
 - `scripts/test` — wrapper: runs PHPUnit for this pack
 - `AGENTS.md` — plain-language rules for AI coding agents
 - `phpstan.neon` — PHPStan configuration (level 8, strictest)
+- `phpmd.xml` — PHPMD ruleset (cyclomatic complexity, method/class length, parameter count, unused code)
 
 ## Quality rules
 
-| Config file  | Rule            | Threshold           |
-| ------------ | --------------- | ------------------- |
-| phpstan.neon | Type strictness | level 8 (strictest) |
+| Config file  | Rule                                         | Threshold           |
+| ------------ | -------------------------------------------- | ------------------- |
+| phpstan.neon | Type strictness                              | level 8 (strictest) |
+| phpmd.xml    | Cyclomatic complexity (CyclomaticComplexity) | <= 10               |
+| phpmd.xml    | Function length (ExcessiveMethodLength)      | <= 80 lines         |
+| phpmd.xml    | File length (ExcessiveClassLength)           | <= 350 lines        |
+| phpmd.xml    | Max parameters (ExcessiveParameterList)      | <= 4                |
+| phpmd.xml    | Unused code (UnusedCode ruleset)             | Error               |
 
-> **Note:** Cyclomatic complexity, cognitive complexity, function length, file length, parameter count, nesting depth, and unused code are not enforced by PHPStan alone. PHPMD adds these metrics but requires separate installation and configuration that noslop does not manage. PHPStan level 8 covers type correctness.
+> **Note:** Cognitive complexity and nesting depth are not enforced — no PHP tool exposes cognitive complexity as a metric, and PHPMD has no nesting-depth rule (it uses NPathComplexity as a combinatorial alternative). PHPMD must be installed separately (`composer require --dev phpmd/phpmd`); noslop installs `phpmd.xml` but does not add it to the fast or slow gate commands. Teams that install PHPMD can run it manually with `vendor/bin/phpmd src/ text phpmd.xml`.
 
 ## Gate tiers
 
@@ -73,6 +80,6 @@ All checks passed.
 ## Troubleshooting
 
 - **`phpstan.neon` not found** — Re-run `noslop install` to regenerate the config file.
-- **`phpmd` not in PATH** — Install globally with `composer global require phpmd/phpmd` and ensure Composer's global bin directory is in your `$PATH`.
+- **`phpmd` not installed** — Run `composer require --dev phpmd/phpmd` to install it as a project dev dependency, then invoke it as `vendor/bin/phpmd`.
 - **PHPUnit autoloader missing** — Run `composer dump-autoload` to regenerate the autoloader, then retry `scripts/test`.
 - **php-cs-fixer reports "file not found" errors** — Ensure you are running from the project root where `composer.json` lives.

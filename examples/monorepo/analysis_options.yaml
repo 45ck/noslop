@@ -1,0 +1,28 @@
+# Dart analysis options — enforced by noslop
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  strong-mode:
+    implicit-casts: false
+    implicit-dynamic: false
+  errors:
+    avoid_dynamic_calls: error
+    type_annotate_public_apis: error
+
+linter:
+  rules:
+    # Strict type safety
+    - always_declare_return_types
+    - type_annotate_public_apis
+    - avoid_dynamic_calls
+    - avoid_returning_null_for_future
+
+    # Code complexity
+    - avoid_function_literals_in_foreach_calls
+    - prefer_expression_function_bodies
+
+    # Style
+    - prefer_const_constructors
+    - prefer_final_fields
+    - unnecessary_this
+    - use_super_parameters
