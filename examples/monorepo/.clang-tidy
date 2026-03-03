@@ -1,0 +1,27 @@
+---
+# clang-tidy configuration — enforced by noslop
+Checks: >
+  cppcoreguidelines-*,
+  readability-*,
+  modernize-*,
+  performance-*,
+  bugprone-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
+  -cppcoreguidelines-pro-type-reinterpret-cast
+
+CheckOptions:
+  # Function body length (lines)
+  - key: readability-function-size.LineThreshold
+    value: '80'
+  # Cyclomatic complexity
+  - key: readability-function-cognitive-complexity.Threshold
+    value: '15'
+  # Parameter count
+  - key: readability-function-size.ParameterThreshold
+    value: '4'
+  # Nesting depth
+  - key: readability-function-size.NestingThreshold
+    value: '4'
+
+WarningsAsErrors: '*'

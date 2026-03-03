@@ -7,7 +7,9 @@
       "Edit(.githooks/**)",
       "Edit(.github/workflows/**)",
       "Edit(.claude/settings.json)",
-      "Edit(.claude/hooks/**)"
+      "Edit(.claude/hooks/**)",
+      "Edit(.golangci.yml)",
+      "Write(.golangci.yml)"
     ]
   }
 }

@@ -1,4 +1,4 @@
-# .NET/C# — noslop pack
+# .NET / C# — noslop pack
 
 > Enforces complexity limits, nullable reference types, and consistent formatting via Roslyn analysers and SonarAnalyzer.
 

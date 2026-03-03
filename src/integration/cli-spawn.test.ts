@@ -139,4 +139,92 @@ describe('CLI spawn tests', () => {
       await fsp.rm(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it('installs all 19 packs into a monorepo directory', async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-monorepo-'));
+    try {
+      const result = cli(
+        [
+          'install',
+          '--pack',
+          'typescript',
+          '--pack',
+          'javascript',
+          '--pack',
+          'rust',
+          '--pack',
+          'python',
+          '--pack',
+          'go',
+          '--pack',
+          'java',
+          '--pack',
+          'kotlin',
+          '--pack',
+          'ruby',
+          '--pack',
+          'php',
+          '--pack',
+          'cpp',
+          '--pack',
+          'scala',
+          '--pack',
+          'elixir',
+          '--pack',
+          'dart',
+          '--pack',
+          'swift',
+          '--pack',
+          'haskell',
+          '--pack',
+          'lua',
+          '--pack',
+          'dotnet',
+          '--pack',
+          'zig',
+          '--pack',
+          'ocaml',
+          '--dir',
+          tmpDir,
+        ],
+        undefined,
+      );
+      expect(result.status).toBe(0);
+
+      // All 19 pack names appear in stdout
+      const out = result.stdout;
+      expect(out).toContain('TypeScript');
+      expect(out).toContain('Rust');
+      expect(out).toContain('Python');
+      expect(out).toContain('Go');
+      expect(out).toContain('Java');
+      expect(out).toContain('Kotlin');
+      expect(out).toContain('Ruby');
+      expect(out).toContain('.NET');
+      expect(out).toContain('PHP');
+      expect(out).toContain('Swift');
+      expect(out).toContain('Scala');
+      expect(out).toContain('Elixir');
+      expect(out).toContain('Dart');
+      expect(out).toContain('Haskell');
+      expect(out).toContain('Lua');
+      expect(out).toContain('Zig');
+      expect(out).toContain('OCaml');
+
+      // Shared hook infrastructure
+      expect(existsSync(path.join(tmpDir, '.githooks', 'pre-commit'))).toBe(true);
+      expect(existsSync(path.join(tmpDir, 'AGENTS.md'))).toBe(true);
+
+      // Representative language quality configs
+      expect(existsSync(path.join(tmpDir, 'eslint.config.js'))).toBe(true);
+      expect(existsSync(path.join(tmpDir, 'clippy.toml'))).toBe(true);
+      expect(existsSync(path.join(tmpDir, '.golangci.yml'))).toBe(true);
+      expect(existsSync(path.join(tmpDir, 'pyproject.toml'))).toBe(true);
+      expect(existsSync(path.join(tmpDir, 'detekt.yml'))).toBe(true);
+      expect(existsSync(path.join(tmpDir, 'Directory.Build.props'))).toBe(true);
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
 });

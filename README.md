@@ -106,27 +106,29 @@ your-repo/
 
 Packs are auto-detected from your repo's files. Override detection with `--pack`.
 
-| Pack           | Detected by                                      | Full details                                                 |
-| -------------- | ------------------------------------------------ | ------------------------------------------------------------ |
-| **TypeScript** | `tsconfig.json`, `package.json`                  | [docs/languages/typescript.md](docs/languages/typescript.md) |
-| **JavaScript** | `package.json`                                   | [docs/languages/javascript.md](docs/languages/javascript.md) |
-| **Rust**       | `Cargo.toml`                                     | [docs/languages/rust.md](docs/languages/rust.md)             |
-| **.NET / C#**  | `.csproj`, `.sln`, `global.json`                 | [docs/languages/dotnet.md](docs/languages/dotnet.md)         |
-| **Python**     | `pyproject.toml`, `setup.py`, `requirements.txt` | [docs/languages/python.md](docs/languages/python.md)         |
-| **Go**         | `go.mod`                                         | [docs/languages/go.md](docs/languages/go.md)                 |
-| **Java**       | `pom.xml`, `build.gradle`                        | [docs/languages/java.md](docs/languages/java.md)             |
-| **Ruby**       | `Gemfile`                                        | [docs/languages/ruby.md](docs/languages/ruby.md)             |
-| **Kotlin**     | `build.gradle` + `.kt` files                     | [docs/languages/kotlin.md](docs/languages/kotlin.md)         |
-| **Swift**      | `Package.swift`                                  | [docs/languages/swift.md](docs/languages/swift.md)           |
-| **PHP**        | `composer.json`                                  | [docs/languages/php.md](docs/languages/php.md)               |
-| **Scala**      | `build.sbt`                                      | [docs/languages/scala.md](docs/languages/scala.md)           |
-| **Elixir**     | `mix.exs`                                        | [docs/languages/elixir.md](docs/languages/elixir.md)         |
-| **Dart**       | `pubspec.yaml`                                   | [docs/languages/dart.md](docs/languages/dart.md)             |
-| **Haskell**    | `.cabal`                                         | [docs/languages/haskell.md](docs/languages/haskell.md)       |
-| **Lua**        | `.rockspec`                                      | [docs/languages/lua.md](docs/languages/lua.md)               |
-| **C / C++**    | `CMakeLists.txt`                                 | [docs/languages/cpp.md](docs/languages/cpp.md)               |
-| **Zig**        | `build.zig`                                      | [docs/languages/zig.md](docs/languages/zig.md)               |
-| **OCaml**      | `dune-project`                                   | [docs/languages/ocaml.md](docs/languages/ocaml.md)           |
+| Pack           | Detected by                                                                 | Full details                                                 |
+| -------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **TypeScript** | `tsconfig.json`, `package.json`                                             | [docs/languages/typescript.md](docs/languages/typescript.md) |
+| **JavaScript** | not auto-detected — use `--pack javascript`                                 | [docs/languages/javascript.md](docs/languages/javascript.md) |
+| **Rust**       | `Cargo.toml`                                                                | [docs/languages/rust.md](docs/languages/rust.md)             |
+| **.NET / C#**  | `.csproj`, `.sln`, `global.json`                                            | [docs/languages/dotnet.md](docs/languages/dotnet.md)         |
+| **Python**     | `pyproject.toml`, `setup.py`, `requirements.txt`                            | [docs/languages/python.md](docs/languages/python.md)         |
+| **Go**         | `go.mod`                                                                    | [docs/languages/go.md](docs/languages/go.md)                 |
+| **Java**       | `pom.xml`, `build.gradle`, or `build.gradle.kts` (no `.kt` files in `src/`) | [docs/languages/java.md](docs/languages/java.md)             |
+| **Ruby**       | `Gemfile`                                                                   | [docs/languages/ruby.md](docs/languages/ruby.md)             |
+| **Kotlin**     | `build.gradle` or `build.gradle.kts` + `.kt` files in `src/`                | [docs/languages/kotlin.md](docs/languages/kotlin.md)         |
+| **Swift**      | `Package.swift`                                                             | [docs/languages/swift.md](docs/languages/swift.md)           |
+| **PHP**        | `composer.json`                                                             | [docs/languages/php.md](docs/languages/php.md)               |
+| **Scala**      | `build.sbt`                                                                 | [docs/languages/scala.md](docs/languages/scala.md)           |
+| **Elixir**     | `mix.exs`                                                                   | [docs/languages/elixir.md](docs/languages/elixir.md)         |
+| **Dart**       | `pubspec.yaml`                                                              | [docs/languages/dart.md](docs/languages/dart.md)             |
+| **Haskell**    | `.cabal`                                                                    | [docs/languages/haskell.md](docs/languages/haskell.md)       |
+| **Lua**        | `.rockspec` file or file ending in `.rockspec`                              | [docs/languages/lua.md](docs/languages/lua.md)               |
+| **C / C++**    | `CMakeLists.txt`                                                            | [docs/languages/cpp.md](docs/languages/cpp.md)               |
+| **Zig**        | `build.zig`                                                                 | [docs/languages/zig.md](docs/languages/zig.md)               |
+| **OCaml**      | `dune-project`                                                              | [docs/languages/ocaml.md](docs/languages/ocaml.md)           |
+
+> **Note:** JavaScript is not auto-detected. A repo with `package.json` but no `tsconfig.json` still routes to the TypeScript pack by default. Use `--pack javascript` to force the JavaScript pack.
 
 ---
 
@@ -187,6 +189,17 @@ noslop update [options]
 Options:
   -d, --dir <path>   Target directory (default: current working directory)
   --pack <id>        Force a specific pack; repeat for multiple (e.g. --pack typescript --pack python)
+```
+
+### `noslop setup`
+
+Interactive wizard. Prompts for language pack, target directory, and confirmation, then installs quality gates. Equivalent to `noslop init` with guided prompts. Use this when you are unsure which pack to choose.
+
+```
+noslop setup [options]
+
+Options:
+  -d, --dir <path>   Target directory (default: current working directory)
 ```
 
 ### `noslop doctor`
@@ -253,7 +266,7 @@ noslop installs a **starter quality config** alongside every pack's gate plumbin
 | **Dart**       | `analysis_options.yaml`                   |    — ¹²     |    — ¹²     |     — ¹²     |     — ¹²     |   — ¹²    |     — ¹²     |      ✓ strict       |      — ¹²      |
 | **Haskell**    | `.hlint.yaml`                             |    — ¹³     |    — ¹³     |     — ¹³     |     — ¹³     |   — ¹³    |     — ¹³     |     ✓ compiler      |    ✓ HLint     |
 | **Lua**        | `.luacheckrc`                             |    — ¹⁴     |    — ¹⁴     |     — ¹⁴     |     — ¹⁴     |   — ¹⁴    |     — ¹⁴     |        — ¹⁴         |       ✓        |
-| **Zig**        | _(compiler)_                              | ✓ compiler  |    — ¹⁵     |     — ¹⁵     |     — ¹⁵     |   — ¹⁵    |     — ¹⁵     |     ✓ compiler      |   ✓ compiler   |
+| **Zig**        | _(compiler)_                              |    — ¹⁵     |    — ¹⁵     |     — ¹⁵     |     — ¹⁵     |   — ¹⁵    |     — ¹⁵     |     ✓ compiler      |   ✓ compiler   |
 | **OCaml**      | _(compiler)_                              |    — ¹⁶     |    — ¹⁶     |     — ¹⁶     |     — ¹⁶     |   — ¹⁶    |     — ¹⁶     |     ✓ compiler      |   ✓ compiler   |
 
 ### Justified gaps

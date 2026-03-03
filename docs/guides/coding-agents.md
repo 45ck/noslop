@@ -32,28 +32,28 @@ noslop install --pack typescript --pack python   # monorepo: two packs
 
 Use this table to determine which `--pack` value to pass without running noslop:
 
-| File present in repo root                           | Pack ID                                                                          |
-| --------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `tsconfig.json` or `package.json`                   | `typescript`                                                                     |
-| `Cargo.toml`                                        | `rust`                                                                           |
-| `.csproj`, `.sln`, or `global.json`                 | `dotnet`                                                                         |
-| `go.mod`                                            | `go`                                                                             |
-| `pyproject.toml`, `setup.py`, or `requirements.txt` | `python`                                                                         |
-| `pom.xml` or `build.gradle` (no `.kt` files)        | `java`                                                                           |
-| `Gemfile`                                           | `ruby`                                                                           |
-| `Package.swift`                                     | `swift`                                                                          |
-| `build.gradle` + `.kt` files present                | `kotlin`                                                                         |
-| `composer.json`                                     | `php`                                                                            |
-| `build.sbt`                                         | `scala`                                                                          |
-| `mix.exs`                                           | `elixir`                                                                         |
-| `pubspec.yaml`                                      | `dart`                                                                           |
-| `build.zig`                                         | `zig`                                                                            |
-| `.cabal`                                            | `haskell`                                                                        |
-| `.rockspec` file or file ending in `.rockspec`      | `lua`                                                                            |
-| `CMakeLists.txt`                                    | `cpp`                                                                            |
-| `dune-project`                                      | `ocaml`                                                                          |
-| `package.json` (no `tsconfig.json`)                 | `javascript` (not auto-detected; `package.json` routes to TypeScript by default) |
-| (none of the above)                                 | `typescript` (default)                                                           |
+| File present in repo root                                                   | Pack ID                                                                          |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `tsconfig.json` or `package.json`                                           | `typescript`                                                                     |
+| `Cargo.toml`                                                                | `rust`                                                                           |
+| `.csproj`, `.sln`, or `global.json`                                         | `dotnet`                                                                         |
+| `go.mod`                                                                    | `go`                                                                             |
+| `pyproject.toml`, `setup.py`, or `requirements.txt`                         | `python`                                                                         |
+| `pom.xml`, `build.gradle`, or `build.gradle.kts` (no `.kt` files in `src/`) | `java`                                                                           |
+| `Gemfile`                                                                   | `ruby`                                                                           |
+| `Package.swift`                                                             | `swift`                                                                          |
+| `build.gradle` or `build.gradle.kts` + `.kt` files in `src/`                | `kotlin`                                                                         |
+| `composer.json`                                                             | `php`                                                                            |
+| `build.sbt`                                                                 | `scala`                                                                          |
+| `mix.exs`                                                                   | `elixir`                                                                         |
+| `pubspec.yaml`                                                              | `dart`                                                                           |
+| `build.zig`                                                                 | `zig`                                                                            |
+| `.cabal`                                                                    | `haskell`                                                                        |
+| `.rockspec` file or file ending in `.rockspec`                              | `lua`                                                                            |
+| `CMakeLists.txt`                                                            | `cpp`                                                                            |
+| `dune-project`                                                              | `ocaml`                                                                          |
+| `package.json` (no `tsconfig.json`)                                         | `javascript` (not auto-detected; `package.json` routes to TypeScript by default) |
+| (none of the above)                                                         | `typescript` (default)                                                           |
 
 > **Note:** JavaScript is not auto-detected. A repo with `package.json` but no `tsconfig.json` still defaults to the TypeScript pack. Use `--pack=javascript` to force JavaScript.
 

@@ -7,7 +7,11 @@
       "Edit(.githooks/**)",
       "Edit(.github/workflows/**)",
       "Edit(.claude/settings.json)",
-      "Edit(.claude/hooks/**)"
+      "Edit(.claude/hooks/**)",
+      "Edit(checkstyle.xml)",
+      "Edit(pmd.xml)",
+      "Write(checkstyle.xml)",
+      "Write(pmd.xml)"
     ]
   }
 }

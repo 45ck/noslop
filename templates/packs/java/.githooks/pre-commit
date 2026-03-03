@@ -1,6 +1,20 @@
 #!/bin/sh
-# noslop pre-commit: fast gates (checkstyle, pmd)
+# noslop pre-commit: fast gates (format, lint, spell)
 set -e
+
+# Block commits that modify protected quality gate config files.
+# Uses line-by-line comparison to avoid substring false positives.
+PROTECTED_CONFIGS="checkstyle.xml pmd.xml"
+while IFS= read -r staged_file; do
+  for cfg in $PROTECTED_CONFIGS; do
+    if [ "$staged_file" = "$cfg" ]; then
+      echo "noslop: $cfg is a protected quality gate config — changes cannot be committed." >&2
+      exit 1
+    fi
+  done
+done << STAGED
+$(git diff --cached --name-only 2>/dev/null)
+STAGED
 
 if command -v noslop >/dev/null 2>&1; then
   noslop check --tier=fast

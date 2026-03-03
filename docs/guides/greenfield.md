@@ -85,7 +85,7 @@ noslop doctor
 ```sh
 cargo new my-project
 cd my-project
-git init    # cargo new initialises git automatically
+# cargo new initialises a git repo automatically; no git init needed
 noslop init --pack rust
 noslop doctor
 ```

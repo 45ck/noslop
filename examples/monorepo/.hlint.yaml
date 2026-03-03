@@ -1,0 +1,17 @@
+# HLint configuration — enforced by noslop
+- arguments: [-Wall]
+
+# Warn on all default suggestions
+- warn: { lhs: 'return (f x)', rhs: 'fmap f (return x)' }
+
+# Error on dangerous patterns
+- error:
+    name: Use fewer imports
+    lhs: 'import X (a); import X (b)'
+    rhs: 'import X (a, b)'
+
+# Ignore some overly strict suggestions
+- ignore:
+    name: Eta reduce
+- ignore:
+    name: Use foldr

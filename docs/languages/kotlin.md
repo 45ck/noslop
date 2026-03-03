@@ -12,7 +12,7 @@
 ## Install
 
 ```sh
-noslop init --pack kotlin   # or: auto-detected from build.gradle with .kt files present
+noslop init --pack kotlin   # or: auto-detected from build.gradle or build.gradle.kts with .kt files in src/
 noslop doctor
 ```
 

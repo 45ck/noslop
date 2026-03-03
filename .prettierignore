@@ -3,3 +3,4 @@ coverage
 reports
 .tsbuildinfo
 node_modules
+examples

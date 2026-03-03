@@ -1,0 +1,54 @@
+# RuboCop configuration — enforced by noslop
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+
+# Cyclomatic complexity cap
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+# Perceived complexity (cognitive proxy)
+Metrics/PerceivedComplexity:
+  Max: 15
+
+# Method length
+Metrics/MethodLength:
+  Max: 80
+  CountAsOne:
+    - heredoc
+    - array
+    - hash
+
+# Block length
+Metrics/BlockLength:
+  Max: 80
+
+# Class length
+Metrics/ClassLength:
+  Max: 350
+
+# File length
+Metrics/FileLength:
+  Max: 350
+
+# Parameter count
+Metrics/ParameterLists:
+  Max: 4
+
+# Nesting depth
+Metrics/BlockNesting:
+  Max: 4
+
+# Unused variables — lint errors
+Lint/UselessAssignment:
+  Enabled: true
+
+Lint/UnusedBlockArgument:
+  Enabled: true
+
+Lint/UnusedMethodArgument:
+  Enabled: true
+
+# Dead code
+Lint/UselessMethodDefinition:
+  Enabled: true

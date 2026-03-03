@@ -7,7 +7,11 @@
       "Edit(.githooks/**)",
       "Edit(.github/workflows/**)",
       "Edit(.claude/settings.json)",
-      "Edit(.claude/hooks/**)"
+      "Edit(.claude/hooks/**)",
+      "Edit(.scalafix.conf)",
+      "Edit(.scalafmt.conf)",
+      "Write(.scalafix.conf)",
+      "Write(.scalafmt.conf)"
     ]
   }
 }
