@@ -6,6 +6,7 @@ import { createPack, type Pack } from '../domain/pack/pack.js';
 const SCRIPT_CANDIDATES = ['gate', 'noslop', 'quality'] as const;
 
 interface PackageJson {
+  packageManager?: string;
   scripts?: Record<string, string>;
 }
 
@@ -27,6 +28,7 @@ export async function detectRepositoryGatePack(
   }
 
   const scripts = packageJson.scripts ?? {};
+  const scriptRunner = await detectScriptRunner(targetDir, fs, packageJson);
 
   for (const prefix of SCRIPT_CANDIDATES) {
     const scriptName = `${prefix}:${tier}`;
@@ -36,11 +38,60 @@ export async function detectRepositoryGatePack(
     }
 
     return createPack('repository', 'Repository Scripts', [
-      createGate(scriptName, `npm run ${scriptName}`, tier),
+      createGate(scriptName, `${scriptRunner} ${scriptName}`, tier),
     ]);
   }
 
   return null;
+}
+
+async function detectScriptRunner(
+  targetDir: string,
+  fs: IFilesystem,
+  packageJson: PackageJson,
+): Promise<string> {
+  const explicitRunner = parsePackageManager(packageJson.packageManager);
+  if (explicitRunner) {
+    return explicitRunner;
+  }
+
+  const candidates: readonly (readonly [string, string])[] = [
+    ['bun.lock', 'bun run'],
+    ['bun.lockb', 'bun run'],
+    ['pnpm-lock.yaml', 'pnpm run'],
+    ['yarn.lock', 'yarn'],
+    ['package-lock.json', 'npm run'],
+    ['npm-shrinkwrap.json', 'npm run'],
+  ];
+
+  for (const [fileName, runner] of candidates) {
+    const lockPath = `${targetDir.replace(/\\/g, '/')}/${fileName}`;
+    if (await fs.exists(lockPath)) {
+      return runner;
+    }
+  }
+
+  return 'npm run';
+}
+
+function parsePackageManager(packageManager: string | undefined): string | null {
+  if (!packageManager) {
+    return null;
+  }
+
+  const name = packageManager.split('@')[0]?.toLowerCase();
+  switch (name) {
+    case 'bun':
+      return 'bun run';
+    case 'pnpm':
+      return 'pnpm run';
+    case 'yarn':
+      return 'yarn';
+    case 'npm':
+      return 'npm run';
+    default:
+      return null;
+  }
 }
 
 function looksRecursive(scriptName: string, body: string, tier: GateTier): boolean {
