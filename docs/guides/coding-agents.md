@@ -91,36 +91,8 @@ npx @45ck/noslop install && noslop check --tier=ci
 
 ## Verifying a healthy install
 
-`noslop doctor` on a correctly installed repo outputs:
-
-```
-✓ .githooks/pre-commit present and executable
-✓ .githooks/pre-push present and executable
-✓ .githooks/commit-msg present and executable
-✓ git config core.hooksPath = .githooks
-✓ .github/workflows/quality.yml present
-✓ .github/workflows/guardrails.yml present
-✓ .claude/settings.json present
-✓ .claude/hooks/pre-tool-use.sh present
-
-All checks passed.
+```sh
+noslop doctor
 ```
 
-Exit code 0 = healthy. Any non-zero exit code means one or more checks failed — read the output and re-run `noslop install` to repair.
-
-## What noslop installs
-
-| File                               | Purpose                                               |
-| ---------------------------------- | ----------------------------------------------------- |
-| `.githooks/pre-commit`             | Runs fast gates before every commit                   |
-| `.githooks/pre-push`               | Runs slow gates before every push                     |
-| `.githooks/commit-msg`             | Enforces Conventional Commits; blocks `[skip ci]`     |
-| `.github/workflows/quality.yml`    | Required CI check on PRs and main pushes              |
-| `.github/workflows/guardrails.yml` | Blocks PRs touching protected files without label     |
-| `.claude/settings.json`            | Denies `--no-verify`, `--force`, protected path edits |
-| `.claude/hooks/pre-tool-use.sh`    | Intercepts tool calls; blocks bypass patterns         |
-| `scripts/check`                    | Wrapper: `noslop check --tier=fast`                   |
-| `scripts/fmt`                      | Wrapper: formatter for the detected pack              |
-| `scripts/lint`                     | Wrapper: linter for the detected pack                 |
-| `scripts/test`                     | Wrapper: test suite for the detected pack             |
-| `AGENTS.md`                        | Plain-language rules for AI agents in this repo       |
+Exit code 0 = healthy. Any non-zero exit means one or more checks failed — read the output and re-run `noslop install` to repair. See [Quick start](../../README.md#quick-start) for expected output.

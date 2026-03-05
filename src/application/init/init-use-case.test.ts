@@ -110,7 +110,7 @@ describe('init use case', () => {
     expect(result.hooksConfigured).toBe(true);
   });
 
-  it('runs exactly the git config core.hooksPath .githooks command with targetDir as cwd', async () => {
+  it('runs git config --get then git config set with targetDir as cwd', async () => {
     const pack = createPack('typescript', 'TypeScript', [GATE]);
     const fs = new InMemoryFilesystem();
     fs.seed('/templates/packs/typescript/.githooks/pre-commit', '#!/bin/sh');
@@ -125,9 +125,77 @@ describe('init use case', () => {
 
     await init(makeCommand({ packs: [pack] }), fs, spyRunner, makeResolver());
 
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.command).toBe('git config core.hooksPath .githooks');
+    expect(calls).toHaveLength(2);
+    expect(calls[0]?.command).toBe('git config --get core.hooksPath');
     expect(calls[0]?.cwd).toBe('/target');
+    expect(calls[1]?.command).toBe('git config core.hooksPath .githooks');
+    expect(calls[1]?.cwd).toBe('/target');
+  });
+
+  it('returns hookPathWarning null when core.hooksPath is not set', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/.githooks/pre-commit', '#!/bin/sh');
+    // InMemoryProcessRunner returns empty stdout for unknown commands — simulates not configured
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath .githooks': 0 });
+
+    const result = await init(makeCommand({ packs: [pack] }), fs, runner, makeResolver());
+    expect(result.hookPathWarning).toBeNull();
+  });
+
+  it('returns hookPathWarning null when core.hooksPath is already .githooks', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/.githooks/pre-commit', '#!/bin/sh');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath .githooks': 0 });
+    runner.setStdout('git config --get core.hooksPath', '.githooks');
+
+    const result = await init(makeCommand({ packs: [pack] }), fs, runner, makeResolver());
+    expect(result.hookPathWarning).toBeNull();
+  });
+
+  it('returns hookPathWarning null when core.hooksPath is ./.githooks', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/.githooks/pre-commit', '#!/bin/sh');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath .githooks': 0 });
+    runner.setStdout('git config --get core.hooksPath', './.githooks');
+
+    const result = await init(makeCommand({ packs: [pack] }), fs, runner, makeResolver());
+    expect(result.hookPathWarning).toBeNull();
+  });
+
+  it('returns hookPathWarning null when core.hooksPath is an absolute .githooks path', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/.githooks/pre-commit', '#!/bin/sh');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath .githooks': 0 });
+    runner.setStdout('git config --get core.hooksPath', '/workspace/repo/.githooks');
+
+    const result = await init(makeCommand({ packs: [pack] }), fs, runner, makeResolver());
+    expect(result.hookPathWarning).toBeNull();
+  });
+
+  it('returns hookPathWarning when core.hooksPath is set to a different value', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/.githooks/pre-commit', '#!/bin/sh');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath .githooks': 0 });
+    runner.setStdout('git config --get core.hooksPath', '.husky');
+
+    const result = await init(makeCommand({ packs: [pack] }), fs, runner, makeResolver());
+    expect(result.hookPathWarning).toContain("'.husky'");
+    expect(result.hookPathWarning).toContain('.githooks');
+  });
+
+  it('returns hookPathWarning null when no .githooks dir in template', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/AGENTS.md', '# Agents');
+    const runner = new InMemoryProcessRunner();
+
+    const result = await init(makeCommand({ packs: [pack] }), fs, runner, makeResolver());
+    expect(result.hookPathWarning).toBeNull();
   });
 
   it('reports hooksConfigured false when git command fails', async () => {

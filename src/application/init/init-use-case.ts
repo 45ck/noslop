@@ -15,6 +15,7 @@ export type InitCommand = Readonly<{
 export type InitResult = Readonly<{
   filesWritten: readonly string[];
   hooksConfigured: boolean;
+  hookPathWarning: string | null;
 }>;
 
 function isGateInfrastructure(destPath: string): boolean {
@@ -123,17 +124,32 @@ export async function init(
   const hooksDir = `${command.targetDir}/.githooks`;
   const hooksExist = await fs.exists(hooksDir);
   let hooksConfigured = false;
+  let hookPathWarning: string | null = null;
 
   if (hooksExist) {
     try {
-      const result = await runner.run('git config core.hooksPath .githooks', command.targetDir);
-      hooksConfigured = result.exitCode === 0;
+      const current = await runner.run('git config --get core.hooksPath', command.targetDir);
+      const existing = current.stdout.trim();
+      if (existing !== '' && !isNoslopHooksPath(existing)) {
+        hookPathWarning =
+          `core.hooksPath was '${existing}' — overwritten to '.githooks'. ` +
+          `If you use another hook manager (Lefthook, Husky, Beads), restore your setting and chain to noslop manually.`;
+      }
+      const set = await runner.run('git config core.hooksPath .githooks', command.targetDir);
+      hooksConfigured = set.exitCode === 0;
     } catch {
       hooksConfigured = false;
     }
   }
 
-  return { filesWritten, hooksConfigured };
+  return { filesWritten, hooksConfigured, hookPathWarning };
+}
+
+function isNoslopHooksPath(hooksPath: string): boolean {
+  const normalized = hooksPath.replace(/\\/g, '/').replace(/\/+$/, '');
+  return (
+    normalized === '.githooks' || normalized === './.githooks' || normalized.endsWith('/.githooks')
+  );
 }
 
 async function copyTemplateDir(

@@ -4,31 +4,9 @@ How to use noslop in repositories that contain multiple languages or sub-project
 
 ## How pack detection works
 
-noslop scans the **repo root** for well-known detection files when you run `noslop init` without `--pack`. All matching packs are detected simultaneously. A repo with both `package.json` and `Cargo.toml` detects both TypeScript and Rust -- you do not need to pass `--pack` at all.
+noslop scans the **repo root** for well-known detection files when you run `noslop init` without `--pack`. All matching packs are detected simultaneously — a repo with both `package.json` and `Cargo.toml` detects both TypeScript and Rust without any flags.
 
-| Detection file                                               | Pack detected        |
-| ------------------------------------------------------------ | -------------------- |
-| `tsconfig.json` or `package.json`                            | TypeScript           |
-| `Cargo.toml`                                                 | Rust                 |
-| `.csproj`, `.sln`, or `global.json`                          | .NET                 |
-| `go.mod`                                                     | Go                   |
-| `pyproject.toml`, `setup.py`, or `requirements.txt`          | Python               |
-| `pom.xml` or `build.gradle` (no `.kt` files in `src/`)       | Java                 |
-| `build.gradle` or `build.gradle.kts` + `.kt` files in `src/` | Kotlin               |
-| `composer.json`                                              | PHP                  |
-| `Gemfile`                                                    | Ruby                 |
-| `Package.swift`                                              | Swift                |
-| `CMakeLists.txt`                                             | C/C++                |
-| `build.sbt`                                                  | Scala                |
-| `mix.exs`                                                    | Elixir               |
-| `pubspec.yaml`                                               | Dart                 |
-| `build.zig`                                                  | Zig                  |
-| `.cabal` file                                                | Haskell              |
-| `.rockspec` file or file ending in `.rockspec`               | Lua                  |
-| `dune-project`                                               | OCaml                |
-| (none matched)                                               | TypeScript (default) |
-
-> **Note:** JavaScript pack is not auto-detected. Use `--pack=javascript` to force it.
+Detection rules for all 19 packs are in [Language packs](../../README.md#language-packs).
 
 ## Installing multiple packs
 
