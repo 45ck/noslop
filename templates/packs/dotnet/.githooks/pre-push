@@ -2,7 +2,9 @@
 # noslop pre-push: slow gates (build, tests)
 set -e
 
-if command -v noslop >/dev/null 2>&1; then
+if command -v npx >/dev/null 2>&1 && npx --no-install noslop --version >/dev/null 2>&1; then
+  npx --no-install noslop check --tier=slow
+elif command -v noslop >/dev/null 2>&1; then
   noslop check --tier=slow
 else
   dotnet build /warnaserror && dotnet test

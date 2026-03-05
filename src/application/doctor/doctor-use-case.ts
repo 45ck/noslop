@@ -36,61 +36,69 @@ export async function doctor(
   const hooksPath = hooksPathResult.stdout.replace(/\r?\n$/, '').trim();
   checks.push({
     name: 'git core.hooksPath',
-    passed: hooksPathResult.exitCode === 0 && hooksPath.length > 0,
+    passed: hooksPathResult.exitCode === 0 && isNoslopHooksPath(hooksPath),
     detail:
-      hooksPathResult.exitCode === 0 && hooksPath.length > 0
+      hooksPathResult.exitCode === 0 && isNoslopHooksPath(hooksPath)
         ? `core.hooksPath = ${hooksPath}`
         : hooksPathResult.exitCode === 0
-          ? 'core.hooksPath is empty — run: noslop init'
+          ? hooksPath.length === 0
+            ? 'core.hooksPath is empty — run: noslop init'
+            : `core.hooksPath points to '${hooksPath}' instead of .githooks — run: noslop init`
           : 'core.hooksPath not set — run: noslop init',
   });
 
-  const hooksDir = `${command.targetDir}/.githooks`;
-  const hooksDirExists = await fs.exists(hooksDir);
-  checks.push({
-    name: '.githooks directory',
-    passed: hooksDirExists,
-    detail: hooksDirExists ? '.githooks/ present' : '.githooks/ missing — run: noslop init',
-  });
-
-  const ciWorkflow = `${command.targetDir}/.github/workflows/quality.yml`;
-  const ciExists = await fs.exists(ciWorkflow);
-  checks.push({
-    name: '.github/workflows/quality.yml',
-    passed: ciExists,
-    detail: ciExists ? 'quality.yml present' : 'quality.yml missing — run: noslop init',
-  });
-
-  const claudeSettings = `${command.targetDir}/.claude/settings.json`;
-  const claudeExists = await fs.exists(claudeSettings);
-  checks.push({
-    name: '.claude/settings.json',
-    passed: claudeExists,
-    detail: claudeExists
-      ? '.claude/settings.json present'
-      : '.claude/settings.json missing — run: noslop init',
-  });
-
-  const claudeHooks = `${command.targetDir}/.claude/hooks`;
-  const claudeHooksExists = await fs.exists(claudeHooks);
-  checks.push({
-    name: '.claude/hooks directory',
-    passed: claudeHooksExists,
-    detail: claudeHooksExists
-      ? '.claude/hooks/ present'
-      : '.claude/hooks/ missing — run: noslop init',
-  });
-
-  const agentsMd = `${command.targetDir}/AGENTS.md`;
-  const agentsExists = await fs.exists(agentsMd);
-  checks.push({
-    name: 'AGENTS.md',
-    passed: agentsExists,
-    detail: agentsExists ? 'AGENTS.md present' : 'AGENTS.md missing — run: noslop init',
-  });
+  await pushFileCheck(checks, fs, `${command.targetDir}/.githooks/pre-commit`, 'pre-commit');
+  await pushFileCheck(checks, fs, `${command.targetDir}/.githooks/pre-push`, 'pre-push');
+  await pushFileCheck(checks, fs, `${command.targetDir}/.githooks/commit-msg`, 'commit-msg');
+  await pushFileCheck(
+    checks,
+    fs,
+    `${command.targetDir}/.github/workflows/quality.yml`,
+    '.github/workflows/quality.yml',
+  );
+  await pushFileCheck(
+    checks,
+    fs,
+    `${command.targetDir}/.github/workflows/guardrails.yml`,
+    '.github/workflows/guardrails.yml',
+  );
+  await pushFileCheck(
+    checks,
+    fs,
+    `${command.targetDir}/.claude/settings.json`,
+    '.claude/settings.json',
+  );
+  await pushFileCheck(
+    checks,
+    fs,
+    `${command.targetDir}/.claude/hooks/pre-tool-use.sh`,
+    '.claude/hooks/pre-tool-use.sh',
+  );
+  await pushFileCheck(checks, fs, `${command.targetDir}/AGENTS.md`, 'AGENTS.md');
 
   return {
     checks,
     healthy: checks.every((c) => c.passed),
   };
+}
+
+async function pushFileCheck(
+  checks: DoctorCheck[],
+  fs: IFilesystem,
+  path: string,
+  label: string,
+): Promise<void> {
+  const exists = await fs.exists(path);
+  checks.push({
+    name: label,
+    passed: exists,
+    detail: exists ? `${label} present` : `${label} missing — run: noslop init`,
+  });
+}
+
+function isNoslopHooksPath(hooksPath: string): boolean {
+  const normalized = hooksPath.replace(/\\/g, '/').replace(/\/+$/, '');
+  return (
+    normalized === '.githooks' || normalized === './.githooks' || normalized.endsWith('/.githooks')
+  );
 }

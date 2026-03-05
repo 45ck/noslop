@@ -86,6 +86,12 @@ describe('init with TYPESCRIPT_PACK', () => {
 
     const agentsMd = path.join(tmpDir, 'AGENTS.md');
     expect(await fsp.stat(agentsMd).then((s) => s.isFile())).toBe(true);
+
+    const preCommit = await fsp.readFile(path.join(githooksDir, 'pre-commit'), 'utf8');
+    expect(preCommit).toContain('npx --no-install noslop check --tier=fast');
+
+    const prePush = await fsp.readFile(path.join(githooksDir, 'pre-push'), 'utf8');
+    expect(prePush).toContain('npx --no-install noslop check --tier=slow');
   });
 });
 

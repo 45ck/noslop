@@ -16,7 +16,9 @@ done << STAGED
 $(git diff --cached --name-only 2>/dev/null)
 STAGED
 
-if command -v noslop >/dev/null 2>&1; then
+if command -v npx >/dev/null 2>&1 && npx --no-install noslop --version >/dev/null 2>&1; then
+  npx --no-install noslop check --tier=fast
+elif command -v noslop >/dev/null 2>&1; then
   noslop check --tier=fast
 else
   find . -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | xargs clang-format --dry-run --Werror

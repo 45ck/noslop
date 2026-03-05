@@ -18,6 +18,7 @@ import { gatesWithoutLabel } from '../domain/gate/gate.js';
 import type { GateTier } from '../domain/gate/gate.js';
 import { fileURLToPath } from 'node:url';
 import { ALL_PACKS, detectPacks } from './packs.js';
+import { detectRepositoryGatePack } from './repo-scripts.js';
 import { runSetup } from './setup-command.js';
 import { buildSpellConfig } from './spell-options.js';
 
@@ -87,6 +88,10 @@ program
         console.log(chalk.green(`  ✓ ${file}`));
       }
 
+      if (result.hookPathWarning) {
+        console.warn(chalk.yellow(`  ⚠ ${result.hookPathWarning}`));
+      }
+
       if (result.hooksConfigured) {
         console.log(chalk.green('  ✓ git core.hooksPath = .githooks'));
       } else {
@@ -144,6 +149,9 @@ program
       const packNames = packs.map((p) => p.name).join(', ');
       const fileCount = result.filesWritten.length;
       const hookStatus = result.hooksConfigured ? 'hooks wired' : 'hooks skipped';
+      if (result.hookPathWarning) {
+        console.warn(`noslop install: ⚠ ${result.hookPathWarning}`);
+      }
       console.log(`noslop install: ${packNames} — ${fileCount} files written, ${hookStatus}`);
     },
   );
@@ -214,15 +222,26 @@ program
       }
       const tier = options.tier as GateTier;
 
-      const rawPacks = options.pack
-        ? ALL_PACKS.filter((p) => p.id === options.pack)
-        : await detectPacks(targetDir, fs);
+      const repositoryPack = options.pack
+        ? null
+        : await detectRepositoryGatePack(targetDir, fs, tier);
+
+      const rawPacks = repositoryPack
+        ? [repositoryPack]
+        : options.pack
+          ? ALL_PACKS.filter((p) => p.id === options.pack)
+          : await detectPacks(targetDir, fs);
 
       const packs = options.spell
         ? rawPacks
         : rawPacks.map((p) => ({ ...p, gates: gatesWithoutLabel(p.gates, 'spell') }));
 
       console.log(chalk.cyan(`noslop check --tier=${tier}`));
+      if (repositoryPack) {
+        console.log(
+          chalk.dim(`using repository-defined gate script: ${repositoryPack.gates[0]?.label}`),
+        );
+      }
 
       const result = await check({ targetDir, packs, tier }, runner);
 
