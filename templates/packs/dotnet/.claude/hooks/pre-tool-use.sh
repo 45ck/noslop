@@ -61,14 +61,14 @@ FILE_PATH_NORMALIZED=$(echo "$FILE_PATH" | tr '\\' '/' | sed 's#^\./##')
 
 if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ]; then
   case "$FILE_PATH_NORMALIZED" in
-    AGENTS.md|.noslop.json|.githooks/*|.github/workflows/*|.claude/settings.json|.claude/hooks/*|scripts/guardrails/*)
+    AGENTS.md|.noslop.json|.githooks/*|.github/workflows/*|.claude/settings.json|.claude/hooks/*|scripts/check|scripts/fmt|scripts/lint|scripts/mutation|scripts/run-package-script|scripts/spell|scripts/test|scripts/typecheck|scripts/guardrails/*)
       echo '{"decision":"block","reason":"noslop: enforcement files are protected and require human review."}'
       exit 0
       ;;
   esac
   FILE_BASE=$(basename "$FILE_PATH")
   case "$FILE_BASE" in
-    Directory.Build.props|.editorconfig)
+    eslint.config.*|prettier.config.*|tsconfig*.json|vitest.config.*|jest.config.*|.dependency-cruiser*|knip.config.*|Directory.Build.props|.editorconfig)
       echo '{"decision":"block","reason":"noslop: quality gate configs are protected — modify rules via noslop install, not direct edits."}'
       exit 0
       ;;

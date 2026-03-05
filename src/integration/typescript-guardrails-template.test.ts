@@ -20,6 +20,8 @@ describe('typescript template guardrails', () => {
     expect(content).toContain('scripts/run-package-script format:check');
     expect(content).toContain('AGENTS.md');
     expect(content).toContain('.noslop.json');
+    expect(content).toContain('Directory.Build.props');
+    expect(content).toContain('.editorconfig');
   });
 
   it('pre-push blocks bypass env vars and uses package-manager-aware fallback scripts', () => {
@@ -38,6 +40,8 @@ describe('typescript template guardrails', () => {
     expect(content).toContain('Edit(.noslop.json)');
     expect(content).toContain('Edit(scripts/guardrails/**)');
     expect(content).toContain('Write(scripts/run-package-script)');
+    expect(content).toContain('Edit(Directory.Build.props)');
+    expect(content).toContain('Edit(.editorconfig)');
   });
 
   it('Claude pre-tool hook blocks destructive bypasses and enforcement-file edits', () => {
@@ -47,6 +51,8 @@ describe('typescript template guardrails', () => {
     expect(content).toContain('push[[:space:]]+--force');
     expect(content).toContain('reset[[:space:]]+--hard');
     expect(content).toContain('scripts/guardrails/*');
+    expect(content).toContain('Directory.Build.props');
+    expect(content).toContain('.editorconfig');
   });
 
   it('guardrails workflow covers enforcement scripts and repo instructions', () => {
@@ -55,6 +61,8 @@ describe('typescript template guardrails', () => {
     expect(content).toContain('.noslop.json');
     expect(content).toContain('scripts/run-package-script');
     expect(content).toContain('scripts/guardrails/**');
+    expect(content).toContain('Directory.Build.props');
+    expect(content).toContain('.editorconfig');
   });
 
   it('maintainer guidance documents the unlock flow', () => {

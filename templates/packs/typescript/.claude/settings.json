@@ -33,6 +33,8 @@
       "Edit(vitest.config.ts)",
       "Edit(.dependency-cruiser.mjs)",
       "Edit(knip.config.ts)",
+      "Edit(Directory.Build.props)",
+      "Edit(.editorconfig)",
       "Write(AGENTS.md)",
       "Write(.noslop.json)",
       "Write(.githooks/**)",
@@ -55,7 +57,9 @@
       "Write(tsconfig.build.json)",
       "Write(vitest.config.ts)",
       "Write(.dependency-cruiser.mjs)",
-      "Write(knip.config.ts)"
+      "Write(knip.config.ts)",
+      "Write(Directory.Build.props)",
+      "Write(.editorconfig)"
     ]
   }
 }

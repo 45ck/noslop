@@ -20,7 +20,7 @@ if [ "${HUSKY:-}" = "0" ] || [ -n "${HUSKY_SKIP_HOOKS:-}" ]; then
   exit 1
 fi
 
-PROTECTED_CONFIGS=".githooks .github .claude AGENTS.md .noslop.json scripts/guardrails Directory.Build.props .editorconfig"
+PROTECTED_CONFIGS=".githooks .github .claude AGENTS.md .noslop.json scripts/check scripts/fmt scripts/lint scripts/mutation scripts/run-package-script scripts/spell scripts/test scripts/typecheck scripts/guardrails eslint.config.js eslint.config.mjs prettier.config.mjs tsconfig.json tsconfig.build.json vitest.config.ts .dependency-cruiser.mjs knip.config.ts Directory.Build.props .editorconfig"
 while IFS= read -r staged_file; do
   for cfg in $PROTECTED_CONFIGS; do
     case "$staged_file" in

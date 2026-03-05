@@ -17,6 +17,9 @@ describe('dotnet template guardrails', () => {
     expect(content).toContain('SKIP_CI');
     expect(content).toContain('HUSKY_SKIP_HOOKS');
     expect(content).toContain('scripts/guardrails/check-protected-config-edit.mjs');
+    expect(content).toContain('scripts/run-package-script');
+    expect(content).toContain('eslint.config.js');
+    expect(content).toContain('tsconfig.json');
     expect(content).toContain('Directory.Build.props');
     expect(content).toContain('.editorconfig');
   });
@@ -26,9 +29,13 @@ describe('dotnet template guardrails', () => {
     const hook = readTemplate(path.join('.claude', 'hooks', 'pre-tool-use.sh'));
     expect(settings).toContain('Bash(*core.hooksPath*)');
     expect(settings).toContain('Edit(AGENTS.md)');
+    expect(settings).toContain('Edit(eslint.config.js)');
+    expect(settings).toContain('Edit(tsconfig.json)');
     expect(settings).toContain('Edit(scripts/guardrails/**)');
     expect(hook).toContain('HUSKY=0');
     expect(hook).toContain('core.hooksPath');
+    expect(hook).toContain('eslint.config.*');
+    expect(hook).toContain('tsconfig*.json');
     expect(hook).toContain('scripts/guardrails/*');
   });
 

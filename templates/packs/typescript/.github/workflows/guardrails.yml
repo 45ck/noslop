@@ -18,6 +18,8 @@ on:
       - 'scripts/test'
       - 'scripts/typecheck'
       - 'scripts/guardrails/**'
+      - 'Directory.Build.props'
+      - '.editorconfig'
 
 jobs:
   guardrails:

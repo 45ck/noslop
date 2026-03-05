@@ -320,6 +320,48 @@ describe('init use case', () => {
     expect(await fs.readFile('/target/.githooks/pre-commit')).toBe('#!/bin/sh\nnew');
   });
 
+  it('normalizes copied template files to LF line endings', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed(
+      '/templates/packs/typescript/.github/workflows/quality.yml',
+      'name: quality\r\njobs:\r\n',
+    );
+    const runner = new InMemoryProcessRunner();
+
+    await init(makeCommand({ packs: [pack] }), fs, runner, makeResolver());
+
+    expect(await fs.readFile('/target/.github/workflows/quality.yml')).toBe(
+      'name: quality\njobs:\n',
+    );
+  });
+
+  it('runs prettier against generated text files when supported files are written', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/.github/workflows/quality.yml', 'name: quality');
+    fs.seed(
+      '/templates/packs/typescript/scripts/guardrails/unlock-protected-config.mjs',
+      'console.log("unlock");\n',
+    );
+
+    const calls: { command: string; cwd: string | undefined }[] = [];
+    const spyRunner = {
+      run: async (command: string, cwd?: string) => {
+        calls.push({ command, cwd });
+        return { exitCode: 0, stdout: '', stderr: '' };
+      },
+    };
+
+    await init(makeCommand({ packs: [pack] }), fs, spyRunner, makeResolver());
+
+    expect(calls).toContainEqual({
+      command:
+        'npx --no-install prettier --write ".github/workflows/quality.yml" "scripts/guardrails/unlock-protected-config.mjs"',
+      cwd: '/target',
+    });
+  });
+
   it('calls resolver only for non-infrastructure files that already exist', async () => {
     const pack = createPack('typescript', 'TypeScript', [GATE]);
     const fs = new InMemoryFilesystem();

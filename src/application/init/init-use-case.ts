@@ -121,6 +121,8 @@ export async function init(
     }
   }
 
+  await formatGeneratedFilesWithPrettier(filesWritten, command.targetDir, runner);
+
   const hooksDir = `${command.targetDir}/.githooks`;
   const hooksExist = await fs.exists(hooksDir);
   let hooksConfigured = false;
@@ -183,7 +185,8 @@ async function copyTemplateDir(
         if (resolution === 'skip') continue;
       }
 
-      await fs.copyFile(srcPath, destPath);
+      const content = await fs.readFile(srcPath);
+      await fs.writeFile(destPath, normalizeTemplateLineEndings(content));
       const isExecutable =
         destPath.includes('/.githooks/') ||
         destPath.includes('/scripts/') ||
@@ -194,4 +197,56 @@ async function copyTemplateDir(
   }
 
   return written;
+}
+
+function normalizeTemplateLineEndings(content: string): string {
+  return content.replace(/\r\n/g, '\n');
+}
+
+async function formatGeneratedFilesWithPrettier(
+  filesWritten: readonly string[],
+  targetDir: string,
+  runner: IProcessRunner,
+): Promise<void> {
+  const relativePaths = filesWritten
+    .map((filePath) => toRelativePath(filePath, targetDir))
+    .filter(isPrettierEligiblePath);
+
+  if (relativePaths.length === 0) {
+    return;
+  }
+
+  const quotedPaths = relativePaths.map(quoteShellArg).join(' ');
+  const npxResult = await runner.run(`npx --no-install prettier --write ${quotedPaths}`, targetDir);
+  if (npxResult.exitCode === 0) {
+    return;
+  }
+
+  await runner.run(`prettier --write ${quotedPaths}`, targetDir);
+}
+
+function toRelativePath(filePath: string, targetDir: string): string {
+  const prefix = `${targetDir}/`;
+  return filePath.startsWith(prefix) ? filePath.slice(prefix.length) : filePath;
+}
+
+function isPrettierEligiblePath(filePath: string): boolean {
+  const lowerPath = filePath.toLowerCase();
+  return (
+    lowerPath.endsWith('.cjs') ||
+    lowerPath.endsWith('.cts') ||
+    lowerPath.endsWith('.js') ||
+    lowerPath.endsWith('.json') ||
+    lowerPath.endsWith('.md') ||
+    lowerPath.endsWith('.mjs') ||
+    lowerPath.endsWith('.mts') ||
+    lowerPath.endsWith('.ts') ||
+    lowerPath.endsWith('.tsx') ||
+    lowerPath.endsWith('.yaml') ||
+    lowerPath.endsWith('.yml')
+  );
+}
+
+function quoteShellArg(value: string): string {
+  return JSON.stringify(value);
 }
