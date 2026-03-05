@@ -20,7 +20,9 @@ noslop check --tier=slow
 
 - Never use `git commit --no-verify`
 - Never use `git push --force` without explicit human approval
+- Do not modify `AGENTS.md`, `.noslop.json`, `.githooks/`, `.github/workflows/`, `.claude/`, or `scripts/guardrails/` without the `noslop-approved` PR label
 - Fix all build warnings; do not use `#pragma warning disable` without justification
+- Maintainers changing protected gate files should use `node scripts/guardrails/unlock-protected-config.mjs "<reason>"` immediately before staging the change
 
 ## Verify your setup
 

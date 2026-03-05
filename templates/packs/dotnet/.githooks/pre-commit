@@ -2,15 +2,33 @@
 # noslop pre-commit: fast gates (format, lint, spell)
 set -e
 
-# Block commits that modify protected quality gate config files.
-# Uses line-by-line comparison to avoid substring false positives.
-PROTECTED_CONFIGS="Directory.Build.props .editorconfig"
+# Block attempts to bypass local quality gates.
+is_ci_bypass_set() {
+  case "${SKIP_CI:-}" in
+    [Tt][Rr][Uu][Ee]|[Yy]|[Yy][Ee][Ss]|1) return 0 ;;
+  esac
+  return 1
+}
+
+if is_ci_bypass_set; then
+  echo "noslop: pre-commit blocked because SKIP_CI is set." >&2
+  exit 1
+fi
+
+if [ "${HUSKY:-}" = "0" ] || [ -n "${HUSKY_SKIP_HOOKS:-}" ]; then
+  echo "noslop: pre-commit blocked because hook bypass environment variables are forbidden." >&2
+  exit 1
+fi
+
+PROTECTED_CONFIGS=".githooks .github .claude AGENTS.md .noslop.json scripts/guardrails Directory.Build.props .editorconfig"
 while IFS= read -r staged_file; do
   for cfg in $PROTECTED_CONFIGS; do
-    if [ "$staged_file" = "$cfg" ]; then
-      echo "noslop: $cfg is a protected quality gate config — changes cannot be committed." >&2
-      exit 1
-    fi
+    case "$staged_file" in
+      "$cfg"|"$cfg"/*)
+        node scripts/guardrails/check-protected-config-edit.mjs "$staged_file"
+        break 2
+        ;;
+    esac
   done
 done << STAGED
 $(git diff --cached --name-only 2>/dev/null)

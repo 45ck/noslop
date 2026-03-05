@@ -17,13 +17,25 @@ export default tseslint.config(
   })),
 
   {
+    files: ['**/*.{js,mjs,cjs}'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.es2022 },
+    },
+  },
+
+  {
+    files: ['**/*.{ts,tsx,mts,cts}'],
     languageOptions: {
       globals: { ...globals.node, ...globals.es2022 },
       parserOptions: {
         projectService: true,
       },
     },
-    plugins: { sonarjs, unicorn },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+      sonarjs,
+      unicorn,
+    },
     rules: {
       // Complexity & size caps — enforced by noslop
       complexity: ['error', 10],
