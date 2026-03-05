@@ -4,13 +4,16 @@ TIER="${NOSLOP_TIER:-${1:-fast}}"
 
 case "$TIER" in
   fast)
-    npm run format:check && npm run lint && npm run spell
+    scripts/run-package-script format:check &&
+      scripts/run-package-script lint &&
+      scripts/run-package-script spell
     ;;
   slow)
-    npm run typecheck && npm run test
+    scripts/run-package-script typecheck &&
+      scripts/run-package-script test
     ;;
   ci)
-    npm run ci
+    scripts/run-package-script ci
     ;;
   *)
     echo "Unknown tier: $TIER — use: fast, slow, or ci" >&2

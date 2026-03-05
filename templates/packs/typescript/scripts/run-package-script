@@ -1,0 +1,47 @@
+#!/bin/sh
+# noslop helper: run a package script using the repo's package manager
+set -e
+
+SCRIPT_NAME="${1:-}"
+if [ -z "$SCRIPT_NAME" ]; then
+  echo "Usage: scripts/run-package-script <script-name> [args...]" >&2
+  exit 1
+fi
+shift
+
+detect_package_manager() {
+  if command -v node >/dev/null 2>&1 && [ -f package.json ]; then
+    DETECTED_PM=$(node -e "const fs=require('fs'); try { const raw=JSON.parse(fs.readFileSync('package.json','utf8')).packageManager || ''; const match=/^(bun|pnpm|yarn|npm)@/.exec(raw); if (match) process.stdout.write(match[1]); } catch {}")
+    if [ -n "$DETECTED_PM" ]; then
+      echo "$DETECTED_PM"
+      return 0
+    fi
+  fi
+
+  if [ -f bun.lockb ] || [ -f bun.lock ]; then
+    echo "bun"
+  elif [ -f pnpm-lock.yaml ]; then
+    echo "pnpm"
+  elif [ -f yarn.lock ]; then
+    echo "yarn"
+  else
+    echo "npm"
+  fi
+}
+
+PACKAGE_MANAGER=$(detect_package_manager)
+
+case "$PACKAGE_MANAGER" in
+  bun)
+    exec bun run "$SCRIPT_NAME" "$@"
+    ;;
+  pnpm)
+    exec pnpm run "$SCRIPT_NAME" "$@"
+    ;;
+  yarn)
+    exec yarn "$SCRIPT_NAME" "$@"
+    ;;
+  *)
+    exec npm run "$SCRIPT_NAME" -- "$@"
+    ;;
+esac

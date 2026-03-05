@@ -133,6 +133,14 @@ describe('CLI spawn tests', () => {
       const installResult = cli(['install', '--pack', 'typescript', '--dir', tmpDir]);
       expect(installResult.status).toBe(0);
 
+      expect(existsSync(path.join(tmpDir, 'scripts', 'run-package-script'))).toBe(true);
+      expect(
+        existsSync(path.join(tmpDir, 'scripts', 'guardrails', 'check-protected-config-edit.mjs')),
+      ).toBe(true);
+      expect(
+        existsSync(path.join(tmpDir, 'scripts', 'guardrails', 'unlock-protected-config.mjs')),
+      ).toBe(true);
+
       const doctorResult = cli(['doctor', '--dir', tmpDir]);
       expect(doctorResult.status).toBe(0);
     } finally {

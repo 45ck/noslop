@@ -2,15 +2,34 @@
 # noslop pre-commit: fast gates (format, lint, spell)
 set -e
 
-# Block commits that modify protected quality gate config files.
-# Uses line-by-line comparison to avoid substring false positives.
-PROTECTED_CONFIGS="eslint.config.js prettier.config.mjs tsconfig.json tsconfig.build.json vitest.config.ts .dependency-cruiser.mjs knip.config.ts"
+# Block attempts to bypass local quality gates.
+is_ci_bypass_set() {
+  case "${SKIP_CI:-}" in
+    [Tt][Rr][Uu][Ee]|[Yy]|[Yy][Ee][Ss]|1) return 0 ;;
+  esac
+  return 1
+}
+
+if is_ci_bypass_set; then
+  echo "noslop: pre-commit blocked because SKIP_CI is set." >&2
+  exit 1
+fi
+
+if [ "${HUSKY:-}" = "0" ] || [ -n "${HUSKY_SKIP_HOOKS:-}" ]; then
+  echo "noslop: pre-commit blocked because hook bypass environment variables are forbidden." >&2
+  exit 1
+fi
+
+# Block commits that modify protected enforcement files and quality gate configs.
+PROTECTED_CONFIGS=".githooks .github .claude AGENTS.md .noslop.json scripts/check scripts/fmt scripts/lint scripts/mutation scripts/run-package-script scripts/spell scripts/test scripts/typecheck scripts/guardrails eslint.config.js prettier.config.mjs tsconfig.json tsconfig.build.json vitest.config.ts .dependency-cruiser.mjs knip.config.ts"
 while IFS= read -r staged_file; do
   for cfg in $PROTECTED_CONFIGS; do
-    if [ "$staged_file" = "$cfg" ]; then
-      echo "noslop: $cfg is a protected quality gate config — changes cannot be committed." >&2
-      exit 1
-    fi
+    case "$staged_file" in
+      "$cfg"|"$cfg"/*)
+        node scripts/guardrails/check-protected-config-edit.mjs "$staged_file"
+        break 2
+        ;;
+    esac
   done
 done << STAGED
 $(git diff --cached --name-only 2>/dev/null)
@@ -21,5 +40,7 @@ if command -v npx >/dev/null 2>&1 && npx --no-install noslop --version >/dev/nul
 elif command -v noslop >/dev/null 2>&1; then
   noslop check --tier=fast
 else
-  npm run format:check && npm run lint && npm run spell
+  scripts/run-package-script format:check &&
+    scripts/run-package-script lint &&
+    scripts/run-package-script spell
 fi

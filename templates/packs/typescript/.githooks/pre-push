@@ -2,10 +2,28 @@
 # noslop pre-push: slow gates (typecheck, tests)
 set -e
 
+is_ci_bypass_set() {
+  case "${SKIP_CI:-}" in
+    [Tt][Rr][Uu][Ee]|[Yy]|[Yy][Ee][Ss]|1) return 0 ;;
+  esac
+  return 1
+}
+
+if is_ci_bypass_set; then
+  echo "noslop: pre-push blocked because SKIP_CI is set." >&2
+  exit 1
+fi
+
+if [ "${HUSKY:-}" = "0" ] || [ -n "${HUSKY_SKIP_HOOKS:-}" ]; then
+  echo "noslop: pre-push blocked because hook bypass environment variables are forbidden." >&2
+  exit 1
+fi
+
 if command -v npx >/dev/null 2>&1 && npx --no-install noslop --version >/dev/null 2>&1; then
   npx --no-install noslop check --tier=slow
 elif command -v noslop >/dev/null 2>&1; then
   noslop check --tier=slow
 else
-  npm run typecheck && npm run test
+  scripts/run-package-script typecheck &&
+    scripts/run-package-script test
 fi
