@@ -15,7 +15,7 @@ export class NodeProcessRunner implements IProcessRunner {
 
     return new Promise((resolve) => {
       const proc = spawn(command, {
-        cwd,
+        cwd: effectiveCwd,
         shell: true,
         stdio: 'pipe',
         env,

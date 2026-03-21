@@ -6,3 +6,4 @@ reports/
 test-results/
 *.tsbuildinfo
 .stryker-tmp/
+pnpm-lock.yaml
