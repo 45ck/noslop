@@ -1,4 +1,8 @@
-import type { IProcessRunner, RunResult } from '../../application/ports/process-runner.js';
+import type {
+  IProcessRunner,
+  RunOptions,
+  RunResult,
+} from '../../application/ports/process-runner.js';
 
 export class InMemoryProcessRunner implements IProcessRunner {
   private readonly exitCodes: Map<string, number>;
@@ -17,7 +21,7 @@ export class InMemoryProcessRunner implements IProcessRunner {
     this.stderrs.set(command, stderr);
   }
 
-  async run(command: string, _cwd?: string): Promise<RunResult> {
+  async run(command: string, _cwd?: string, _options?: RunOptions): Promise<RunResult> {
     const exitCode = this.exitCodes.get(command) ?? 0;
     const stdout = this.stdouts.get(command) ?? '';
     const stderr = this.stderrs.get(command) ?? '';

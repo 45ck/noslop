@@ -132,6 +132,66 @@ your-repo/
 
 **Claude guardrails.** The `pre-tool-use.sh` hook intercepts every Bash tool call Claude Code makes before execution and blocks commands containing `--no-verify`, `SKIP_CI`, `[skip ci]`, or ESLint config-disabling flags. Combined with the `settings.json` deny rules, this prevents any AI agent from bypassing the local gates.
 
+## Configuration file
+
+You can commit a `.noslop.json` file in your repo root to set defaults. CLI flags always take precedence over the config file.
+
+```json
+{
+  "packs": ["typescript", "python"],
+  "spell": {
+    "language": "en",
+    "words": ["noslop", "guardrail"]
+  },
+  "skipGates": ["mutation"]
+}
+```
+
+| Field            | Type       | Description                               |
+| ---------------- | ---------- | ----------------------------------------- |
+| `packs`          | `string[]` | Pack IDs to use instead of auto-detection |
+| `spell.language` | `string`   | BCP-47 locale for spell checking          |
+| `spell.words`    | `string[]` | Seed vocabulary words                     |
+| `skipGates`      | `string[]` | Gate labels to skip during `check`        |
+
+## Troubleshooting
+
+### `noslop doctor` reports failures
+
+Run `noslop doctor --dir .` and check which items fail:
+
+- **Hook files missing** — Run `noslop init` (or `noslop update` to preserve your configs) to regenerate them.
+- **`git config core.hooksPath` not set** — Make sure the directory is a git repo (`git init`), then run `noslop init` again.
+- **CI workflow files missing** — Run `noslop update --pack <your-pack>` to regenerate `.github/workflows/` files.
+
+### Gate fails with "command not found"
+
+noslop runs your project's own toolchain. If a gate reports a missing command:
+
+1. Install project dependencies (`npm install`, `pip install -r requirements.txt`, etc.)
+2. Verify the tool is on your PATH: `which eslint`, `which cargo`, etc.
+3. For Node.js projects, ensure `node_modules/.bin` is populated.
+
+### Pre-commit hook is slow
+
+The `pre-commit` hook runs `--tier=fast` gates only. If it's still slow:
+
+- Check which gates are in the `fast` tier for your pack (see `docs/languages/<pack>.md`).
+- Use `git commit --no-verify` to skip hooks for a single commit (note: Claude Code guardrails block this for AI agents).
+- Move expensive gates to the `slow` tier by editing your `.githooks/pre-commit` to use `--tier=fast` (default) and letting `pre-push` handle heavier checks.
+
+### Windows-specific issues
+
+- **`chmod` is a no-op on Windows** — Hook files are always created with correct content; the `chmod` call is for Unix permissions and is safely ignored on Windows.
+- **Shell compatibility** — Git hooks use `#!/bin/sh`. On Windows, Git for Windows provides a POSIX shell. If hooks fail, ensure Git for Windows is installed and `sh` is available on PATH.
+- **Path separators** — noslop uses forward slashes internally. If you see path errors, ensure you're using the `--dir` flag with forward slashes or quoted backslashes.
+
+### `noslop check` passes locally but fails in CI
+
+- CI runs `--tier=ci` which includes all gates (fast + slow + ci-only). Run `noslop check --tier=ci` locally to reproduce.
+- Check that CI has the same toolchain versions as your local environment.
+- Ensure CI installs project dependencies before running `noslop check`.
+
 ## Limits and non-goals
 
 - **Repo policy layer, not host-level security.** noslop enforces rules within a repository. It does not sandbox processes or restrict network access.
@@ -211,6 +271,9 @@ Options:
   --tier <tier>      Gate tier to run: fast | slow | ci  (default: fast)
   --pack <id>        Limit to a specific pack
   --verbose          Show stdout/stderr for passing gates as well as failures
+  --json             Emit machine-readable JSON output
+  --debug            Show internal diagnostics (resolved paths, commands)
+  --skip-gate <label> Skip a gate by label; repeat for multiple (e.g. --skip-gate mutation)
   --no-spell         Skip the spell gate for this run
 ```
 

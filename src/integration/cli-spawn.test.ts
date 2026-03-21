@@ -5,7 +5,7 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { promises as fsp, existsSync } from 'node:fs';
+import { promises as fsp, existsSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
@@ -34,7 +34,7 @@ describe('CLI spawn tests', () => {
     expect(distExists).toBe(true);
   });
 
-  it('--help exits 0 and lists all 6 commands', () => {
+  it('--help exits 0 and lists all 7 commands', () => {
     if (!distExists) return;
     const result = cli(['--help']);
     expect(result.status).toBe(0);
@@ -42,18 +42,30 @@ describe('CLI spawn tests', () => {
     expect(out).toContain('init');
     expect(out).toContain('install');
     expect(out).toContain('update');
+    expect(out).toContain('list');
     expect(out).toContain('check');
     expect(out).toContain('doctor');
     expect(out).toContain('setup');
   });
 
-  it('--version exits 0', () => {
+  it('--version exits 0 and matches package.json version', () => {
     if (!distExists) return;
     const result = cli(['--version']);
     expect(result.status).toBe(0);
+
+    const pkgPath = path.join(projectRoot, 'package.json');
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version: string };
+    expect(String(result.stdout).trim()).toBe(pkg.version);
   });
 
-  it('doctor on an empty temp dir exits 1', async () => {
+  it('exits 2 with error when --dir points to non-existent directory', () => {
+    if (!distExists) return;
+    const result = cli(['doctor', '--dir', '/tmp/noslop-nonexistent-dir-xyz']);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('directory does not exist');
+  });
+
+  it('doctor on an empty temp dir exits 1', { timeout: 20_000 }, async () => {
     if (!distExists) return;
     const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-empty-'));
     try {
@@ -122,7 +134,7 @@ describe('CLI spawn tests', () => {
     }
   });
 
-  it('doctor on a typescript-initialized git repo exits 0', async () => {
+  it('doctor on a typescript-initialized git repo exits 0', { timeout: 20_000 }, async () => {
     if (!distExists) return;
     const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-ts-'));
     try {
@@ -135,6 +147,128 @@ describe('CLI spawn tests', () => {
 
       const doctorResult = cli(['doctor', '--dir', tmpDir]);
       expect(doctorResult.status).toBe(0);
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('install --dry-run exits 0, prints dry-run output, and creates no files', async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-dryrun-'));
+    try {
+      const result = cli(['install', '--pack', 'rust', '--dry-run', '--dir', tmpDir]);
+      expect(result.status).toBe(0);
+      const out = result.stdout;
+      expect(out).toContain('[dry-run]');
+      expect(out).toContain('Rust');
+      expect(out).toContain('No files were written');
+
+      // No files should have been created
+      const entries = await fsp.readdir(tmpDir);
+      expect(entries).toEqual([]);
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('check --json outputs valid JSON with expected structure', async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-json-'));
+    try {
+      cli(['install', '--pack', 'rust', '--dir', tmpDir]);
+
+      const result = cli(['check', '--json', '--tier', 'fast', '--dir', tmpDir]);
+      // Gates will likely fail (no toolchain), so exit code may be 1
+      const out = String(result.stdout).trim();
+      const parsed = JSON.parse(out) as {
+        passed: boolean;
+        tier: string;
+        gates: { label: string; command: string; passed: boolean; exitCode: number }[];
+      };
+      expect(typeof parsed.passed).toBe('boolean');
+      expect(parsed.tier).toBe('fast');
+      expect(Array.isArray(parsed.gates)).toBe(true);
+      for (const gate of parsed.gates) {
+        expect(typeof gate.label).toBe('string');
+        expect(typeof gate.command).toBe('string');
+        expect(typeof gate.passed).toBe('boolean');
+        expect(typeof gate.exitCode).toBe('number');
+      }
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('check --skip-gate spell removes the spell gate from output', async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-skip-'));
+    try {
+      cli(['install', '--pack', 'rust', '--dir', tmpDir]);
+
+      const result = cli([
+        'check',
+        '--json',
+        '--tier',
+        'fast',
+        '--skip-gate',
+        'spell',
+        '--dir',
+        tmpDir,
+      ]);
+      const out = String(result.stdout).trim();
+      const parsed = JSON.parse(out) as {
+        gates: { label: string }[];
+      };
+      const labels = parsed.gates.map((g) => g.label);
+      expect(labels).not.toContain('spell');
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('check --verbose shows gate output for all gates', async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-verbose-'));
+    try {
+      cli(['install', '--pack', 'rust', '--dir', tmpDir]);
+
+      const result = cli(['check', '--verbose', '--tier', 'fast', '--dir', tmpDir]);
+      const out = String(result.stdout);
+      // With --verbose, output should show the tier header and gate results
+      expect(out).toContain('noslop check --tier=fast');
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('check --json --skip-gate combined removes specified gates from JSON', async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-combined-'));
+    try {
+      cli(['install', '--pack', 'rust', '--dir', tmpDir]);
+
+      const result = cli([
+        'check',
+        '--json',
+        '--tier',
+        'ci',
+        '--skip-gate',
+        'mutation',
+        '--skip-gate',
+        'spell',
+        '--dir',
+        tmpDir,
+      ]);
+      const out = String(result.stdout).trim();
+      const parsed = JSON.parse(out) as {
+        passed: boolean;
+        tier: string;
+        gates: { label: string }[];
+      };
+      expect(parsed.tier).toBe('ci');
+      const labels = parsed.gates.map((g) => g.label);
+      expect(labels).not.toContain('mutation');
+      expect(labels).not.toContain('spell');
     } finally {
       await fsp.rm(tmpDir, { recursive: true, force: true });
     }

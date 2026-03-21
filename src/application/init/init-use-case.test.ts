@@ -278,6 +278,19 @@ describe('init use case', () => {
 
     expect(spy.calls).toEqual([]);
   });
+
+  it('skips template entries containing path traversal (..)', async () => {
+    const pack = createPack('typescript', 'TypeScript', [GATE]);
+    const fs = new InMemoryFilesystem();
+    fs.seed('/templates/packs/typescript/../../../etc/passwd', 'malicious');
+    fs.seed('/templates/packs/typescript/AGENTS.md', '# Agents');
+    const runner = new InMemoryProcessRunner();
+
+    const result = await init(makeCommand({ packs: [pack] }), fs, runner, makeResolver());
+
+    expect(result.filesWritten).toEqual(['/target/AGENTS.md']);
+    expect(await fs.exists('/etc/passwd')).toBe(false);
+  });
 });
 
 const SPELL_GATE_CSPELL = createGate('spell', 'cspell --no-progress "src/**/*"', 'fast');

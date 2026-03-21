@@ -4,6 +4,11 @@ export type RunResult = Readonly<{
   stderr: string;
 }>;
 
+export type RunOptions = Readonly<{
+  cwd?: string;
+  timeoutMs?: number;
+}>;
+
 export interface IProcessRunner {
   /**
    * Run a shell command and return the result.
@@ -12,5 +17,5 @@ export interface IProcessRunner {
    * `command` directly to a shell. Only pass hardcoded strings — never user-supplied
    * input — to avoid shell injection.
    */
-  run(command: string, cwd?: string): Promise<RunResult>;
+  run(command: string, cwd?: string, options?: RunOptions): Promise<RunResult>;
 }

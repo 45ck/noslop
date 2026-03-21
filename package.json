@@ -3,6 +3,26 @@
   "version": "1.0.0",
   "description": "Agent-boundary quality gates — git hooks, CI workflows, and Claude Code guardrails for 19 languages.",
   "license": "MIT",
+  "keywords": [
+    "quality-gates",
+    "git-hooks",
+    "ci",
+    "claude",
+    "eslint",
+    "agent",
+    "linter",
+    "pre-commit",
+    "code-quality"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/45ck/noslop.git"
+  },
+  "homepage": "https://github.com/45ck/noslop#readme",
+  "bugs": {
+    "url": "https://github.com/45ck/noslop/issues"
+  },
+  "author": "45ck",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"

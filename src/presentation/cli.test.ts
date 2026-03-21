@@ -225,4 +225,18 @@ describe('detectPacks', () => {
     const packs = await detectPacks('/project', fs);
     expect(packs).toContain(LUA_PACK);
   });
+
+  it('detects dotnet pack when .CSPROJ file has uppercase extension', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/project/MyApp.CSPROJ', '');
+    const packs = await detectPacks('/project', fs);
+    expect(packs).toContain(DOTNET_PACK);
+  });
+
+  it('detects Haskell pack when .Cabal file has mixed-case extension', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/project/myapp.Cabal', 'name: myapp');
+    const packs = await detectPacks('/project', fs);
+    expect(packs).toContain(HASKELL_PACK);
+  });
 });

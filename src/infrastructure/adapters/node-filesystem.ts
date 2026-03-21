@@ -1,4 +1,4 @@
-import { promises as fsp } from 'node:fs';
+import { constants, promises as fsp } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { IFilesystem } from '../../application/ports/filesystem.js';
@@ -44,6 +44,16 @@ export class NodeFilesystem implements IFilesystem {
 
   async chmod(filePath: string, mode: number): Promise<void> {
     await fsp.chmod(filePath, mode);
+  }
+
+  async isExecutable(filePath: string): Promise<boolean> {
+    if (process.platform === 'win32') return true;
+    try {
+      await fsp.access(filePath, constants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

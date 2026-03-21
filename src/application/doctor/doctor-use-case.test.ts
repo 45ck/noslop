@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { doctor } from './doctor-use-case.js';
 import { InMemoryFilesystem } from '../../infrastructure/adapters/in-memory-filesystem.js';
 import { InMemoryProcessRunner } from '../../infrastructure/adapters/in-memory-process-runner.js';
+import { createPack } from '../../domain/pack/pack.js';
+import { createGate } from '../../domain/gate/gate.js';
 
 function seedAll(fs: InMemoryFilesystem): void {
   fs.seed('/target/.githooks/pre-commit', '#!/bin/sh');
+  fs.markExecutable('/target/.githooks/pre-commit');
   fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
   fs.seed('/target/.claude/settings.json', '{}');
   fs.seed('/target/.claude/hooks/pre-tool-use.sh', '#!/bin/sh');
@@ -168,5 +171,203 @@ describe('doctor use case', () => {
     const check = result.checks.find((c) => c.name === 'git core.hooksPath');
     // Must NOT contain the success phrase — guards the false-branch
     expect(check?.detail).not.toContain('core.hooksPath =');
+  });
+
+  it('skips toolchain checks when packs is not provided', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    const toolchainChecks = result.checks.filter((c) => c.name.startsWith('toolchain:'));
+    expect(toolchainChecks).toHaveLength(0);
+  });
+
+  it('adds toolchain checks when packs are provided', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+    const runner = new InMemoryProcessRunner({
+      'git config core.hooksPath': 0,
+      'zig version': 0,
+    });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+    runner.setStdout('zig version', '0.11.0');
+
+    const zigPack = createPack('zig', 'Zig', [createGate('build', 'zig build', 'fast')]);
+    const result = await doctor({ targetDir: '/target', packs: [zigPack] }, fs, runner);
+
+    const toolchainChecks = result.checks.filter((c) => c.name.startsWith('toolchain:'));
+    expect(toolchainChecks.length).toBeGreaterThanOrEqual(1);
+
+    const zigCheck = toolchainChecks.find((c) => c.name === 'toolchain: zig/zig');
+    expect(zigCheck).toBeDefined();
+    expect(zigCheck?.passed).toBe(true);
+    expect(zigCheck?.detail).toBe('zig found');
+  });
+
+  it('toolchain checks are always passed=true even when binary is missing', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+    const runner = new InMemoryProcessRunner({
+      'git config core.hooksPath': 0,
+      'cargo --version': 1,
+      'cargo clippy --version': 1,
+    });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const rustPack = createPack('rust', 'Rust', [createGate('build', 'cargo build', 'fast')]);
+    const result = await doctor({ targetDir: '/target', packs: [rustPack] }, fs, runner);
+
+    const toolchainChecks = result.checks.filter((c) => c.name.startsWith('toolchain:'));
+    for (const check of toolchainChecks) {
+      expect(check.passed).toBe(true);
+    }
+
+    const cargoCheck = toolchainChecks.find((c) => c.name === 'toolchain: rust/cargo');
+    expect(cargoCheck?.detail).toContain('not found');
+    expect(cargoCheck?.detail).toContain('rustup');
+  });
+
+  it('toolchain checks do not affect healthy status', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+    const runner = new InMemoryProcessRunner({
+      'git config core.hooksPath': 0,
+      'dart --version': 1,
+    });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const dartPack = createPack('dart', 'Dart', [createGate('test', 'dart test', 'fast')]);
+    const result = await doctor({ targetDir: '/target', packs: [dartPack] }, fs, runner);
+
+    expect(result.healthy).toBe(true);
+    const dartCheck = result.checks.find((c) => c.name === 'toolchain: dart/dart');
+    expect(dartCheck?.detail).toContain('not found');
+  });
+
+  it('toolchain checks handle runner throwing an error', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+
+    let callCount = 0;
+    const throwingRunner = {
+      run: async (cmd: string) => {
+        if (cmd === 'git config core.hooksPath') {
+          return { exitCode: 0, stdout: '.githooks', stderr: '' };
+        }
+        callCount++;
+        throw new Error('command not found');
+      },
+    };
+
+    const zigPack = createPack('zig', 'Zig', [createGate('build', 'zig build', 'fast')]);
+    const result = await doctor({ targetDir: '/target', packs: [zigPack] }, fs, throwingRunner);
+
+    expect(callCount).toBeGreaterThan(0);
+    const zigCheck = result.checks.find((c) => c.name === 'toolchain: zig/zig');
+    expect(zigCheck?.passed).toBe(true);
+    expect(zigCheck?.detail).toContain('not found');
+  });
+
+  it('passes hook permission check when pre-commit is executable', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+    fs.markExecutable('/target/.githooks/pre-commit');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    const check = result.checks.find((c) => c.name === '.githooks/pre-commit permissions');
+    expect(check?.passed).toBe(true);
+    expect(check?.detail).toContain('is executable');
+  });
+
+  it('fails hook permission check when pre-commit is not executable', async () => {
+    const fs = new InMemoryFilesystem();
+    // Seed files individually — pre-commit exists but is NOT marked executable
+    fs.seed('/target/.githooks/pre-commit', '#!/bin/sh');
+    fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
+    fs.seed('/target/.claude/settings.json', '{}');
+    fs.seed('/target/.claude/hooks/pre-tool-use.sh', '#!/bin/sh');
+    fs.seed('/target/AGENTS.md', '# Agents');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    const check = result.checks.find((c) => c.name === '.githooks/pre-commit permissions');
+    expect(check?.passed).toBe(false);
+    expect(check?.detail).toContain('chmod +x');
+  });
+
+  it('skips hook permission check when pre-commit does not exist', async () => {
+    const fs = new InMemoryFilesystem();
+    // Don't seed pre-commit
+    fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
+    fs.seed('/target/.claude/settings.json', '{}');
+    fs.seed('/target/.claude/hooks/pre-tool-use.sh', '#!/bin/sh');
+    fs.seed('/target/AGENTS.md', '# Agents');
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    const check = result.checks.find((c) => c.name === '.githooks/pre-commit permissions');
+    expect(check).toBeUndefined();
+  });
+
+  it('strict mode marks missing toolchain as failed', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+    const runner = new InMemoryProcessRunner({
+      'git config core.hooksPath': 0,
+      'cargo --version': 1,
+      'cargo clippy --version': 1,
+    });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const rustPack = createPack('rust', 'Rust', [createGate('build', 'cargo build', 'fast')]);
+    const result = await doctor(
+      { targetDir: '/target', packs: [rustPack], strict: true },
+      fs,
+      runner,
+    );
+
+    const cargoCheck = result.checks.find((c) => c.name === 'toolchain: rust/cargo');
+    expect(cargoCheck?.passed).toBe(false);
+    expect(cargoCheck?.detail).toContain('not found');
+    expect(result.healthy).toBe(false);
+  });
+
+  it('strict mode passes when toolchain is available', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+    const runner = new InMemoryProcessRunner({
+      'git config core.hooksPath': 0,
+      'zig version': 0,
+    });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+    runner.setStdout('zig version', '0.11.0');
+
+    const zigPack = createPack('zig', 'Zig', [createGate('build', 'zig build', 'fast')]);
+    const result = await doctor(
+      { targetDir: '/target', packs: [zigPack], strict: true },
+      fs,
+      runner,
+    );
+
+    const zigCheck = result.checks.find((c) => c.name === 'toolchain: zig/zig');
+    expect(zigCheck?.passed).toBe(true);
+    expect(result.healthy).toBe(true);
+  });
+
+  it('skips toolchain checks when packs is an empty array', async () => {
+    const fs = new InMemoryFilesystem();
+    seedAll(fs);
+    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
+    runner.setStdout('git config core.hooksPath', '.githooks');
+
+    const result = await doctor({ targetDir: '/target', packs: [] }, fs, runner);
+    const toolchainChecks = result.checks.filter((c) => c.name.startsWith('toolchain:'));
+    expect(toolchainChecks).toHaveLength(0);
   });
 });

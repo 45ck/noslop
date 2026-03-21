@@ -7,6 +7,7 @@ export type CheckCommand = Readonly<{
   targetDir: string;
   packs: readonly Pack[];
   tier: GateTier;
+  timeoutMs?: number;
 }>;
 
 export type GateOutcome = Readonly<{
@@ -21,16 +22,26 @@ export type CheckResult = Readonly<{
   passed: boolean;
 }>;
 
-export async function check(command: CheckCommand, runner: IProcessRunner): Promise<CheckResult> {
+export type CheckListener = Readonly<{
+  onGateStart?: (label: string) => void;
+}>;
+
+export async function check(
+  command: CheckCommand,
+  runner: IProcessRunner,
+  listener?: CheckListener,
+): Promise<CheckResult> {
   const outcomes: GateOutcome[] = [];
 
   for (const pack of command.packs) {
     const gates = gatesForTier(pack.gates, command.tier);
 
     for (const gate of gates) {
+      listener?.onGateStart?.(gate.label);
       let result: RunResult;
       try {
-        result = await runner.run(gate.command, command.targetDir);
+        const runOpts = command.timeoutMs ? { timeoutMs: command.timeoutMs } : undefined;
+        result = await runner.run(gate.command, command.targetDir, runOpts);
       } catch (err) {
         result = {
           exitCode: 1,

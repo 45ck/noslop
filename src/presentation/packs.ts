@@ -60,7 +60,10 @@ export async function detectPacks(targetDir: string, fs: IFilesystem): Promise<P
   }
 
   const rootEntries = await fs.readdir(targetDir).catch(() => []);
-  const hasDotnet = rootEntries.some((e) => e.endsWith('.csproj') || e.endsWith('.sln'));
+  const hasDotnet = rootEntries.some((e) => {
+    const lower = e.toLowerCase();
+    return lower.endsWith('.csproj') || lower.endsWith('.sln');
+  });
   const hasGlobalJson = await fs.exists(`${targetDir}/global.json`);
   if (hasDotnet || hasGlobalJson) detected.push(DOTNET_PACK);
 
@@ -83,7 +86,7 @@ export async function detectPacks(targetDir: string, fs: IFilesystem): Promise<P
   if (hasMaven || hasGradle) {
     // Distinguish Java from Kotlin: check for .kt files in src/
     const srcEntries = await fs.readdir(`${targetDir}/src`).catch(() => []);
-    const hasKotlinSrc = srcEntries.some((e) => e.endsWith('.kt'));
+    const hasKotlinSrc = srcEntries.some((e) => e.toLowerCase().endsWith('.kt'));
     if (hasKotlinSrc) {
       detected.push(KOTLIN_PACK);
     } else {
@@ -131,13 +134,14 @@ export async function detectPacks(targetDir: string, fs: IFilesystem): Promise<P
     detected.push(ZIG_PACK);
   }
 
-  const hasCabalFile = rootEntries.some((e) => e.endsWith('.cabal'));
+  const hasCabalFile = rootEntries.some((e) => e.toLowerCase().endsWith('.cabal'));
   if (hasCabalFile) {
     detected.push(HASKELL_PACK);
   }
 
   const hasLuaRock =
-    (await fs.exists(`${targetDir}/rockspec`)) || rootEntries.some((e) => e.endsWith('.rockspec'));
+    (await fs.exists(`${targetDir}/rockspec`)) ||
+    rootEntries.some((e) => e.toLowerCase().endsWith('.rockspec'));
   if (hasLuaRock) {
     detected.push(LUA_PACK);
   }

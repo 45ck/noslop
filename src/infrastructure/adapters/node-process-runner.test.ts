@@ -31,4 +31,12 @@ describe('NodeProcessRunner', () => {
     const result = await runner.run('node -e "process.stderr.write(\'err\')"');
     expect(result.stderr).toContain('err');
   });
+
+  it('kills process and reports timeout when timeoutMs is exceeded', async () => {
+    const result = await runner.run('node -e "setTimeout(() => {}, 30000)"', undefined, {
+      timeoutMs: 500,
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain('Gate timed out');
+  }, 10_000);
 });

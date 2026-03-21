@@ -17,12 +17,17 @@ export type InitResult = Readonly<{
   hooksConfigured: boolean;
 }>;
 
+function toForwardSlash(p: string): string {
+  return p.replaceAll('\\', '/');
+}
+
 function isGateInfrastructure(destPath: string): boolean {
+  const normalized = toForwardSlash(destPath);
   return (
-    destPath.includes('/.githooks/') ||
-    destPath.includes('/scripts/') ||
-    destPath.includes('/.github/') ||
-    destPath.includes('/.claude/')
+    normalized.includes('/.githooks/') ||
+    normalized.includes('/scripts/') ||
+    normalized.includes('/.github/') ||
+    normalized.includes('/.claude/')
   );
 }
 
@@ -145,11 +150,17 @@ async function copyTemplateDir(
 ): Promise<string[]> {
   const written: string[] = [];
   const entries = await fs.readdir(templateDir);
+  const normalizedTarget = toForwardSlash(targetDir);
 
   for (const entry of entries) {
     const srcPath = `${templateDir}/${entry}`;
     const relPath = relativePrefix ? `${relativePrefix}/${entry}` : entry;
+
+    if (toForwardSlash(relPath).includes('..')) continue;
+
     const destPath = `${targetDir}/${relPath}`;
+
+    if (!toForwardSlash(destPath).startsWith(normalizedTarget)) continue;
 
     const isDir = await fs.isDirectory(srcPath);
     if (isDir) {
@@ -157,7 +168,8 @@ async function copyTemplateDir(
       const subWritten = await copyTemplateDir(srcPath, targetDir, relPath, fs, resolver);
       written.push(...subWritten);
     } else {
-      const lastSlash = destPath.lastIndexOf('/');
+      const normalized = toForwardSlash(destPath);
+      const lastSlash = normalized.lastIndexOf('/');
       if (lastSlash > 0) {
         await fs.mkdir(destPath.slice(0, lastSlash), { recursive: true });
       }
@@ -169,9 +181,9 @@ async function copyTemplateDir(
 
       await fs.copyFile(srcPath, destPath);
       const isExecutable =
-        destPath.includes('/.githooks/') ||
-        destPath.includes('/scripts/') ||
-        destPath.includes('/.claude/hooks/');
+        normalized.includes('/.githooks/') ||
+        normalized.includes('/scripts/') ||
+        normalized.includes('/.claude/hooks/');
       await fs.chmod(destPath, isExecutable ? 0o755 : 0o644);
       written.push(destPath);
     }

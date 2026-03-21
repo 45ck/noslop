@@ -113,7 +113,13 @@
     "Coursier",
     "ziglang",
     "Comptime",
-    "setuptools"
+    "setuptools",
+    "taskkill",
+    "toolchain",
+    "dryrun",
+    "javac",
+    "kotlinlang",
+    "scalac"
   ],
   "ignorePaths": [
     "dist/**",

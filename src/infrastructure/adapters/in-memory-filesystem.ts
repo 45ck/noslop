@@ -65,10 +65,23 @@ export class InMemoryFilesystem implements IFilesystem {
   }
 
   readonly chmodCalls: { path: string; mode: number }[] = [];
+  private readonly executablePaths = new Set<string>();
 
   async chmod(path: string, mode: number): Promise<void> {
     // no-op for permissions, but records calls so tests can assert chmod was invoked
     this.chmodCalls.push({ path, mode });
+    if (mode & 0o111) {
+      this.executablePaths.add(path);
+    }
+  }
+
+  async isExecutable(path: string): Promise<boolean> {
+    return this.executablePaths.has(path);
+  }
+
+  /** Mark a file as executable in tests (simulates chmod +x). */
+  markExecutable(path: string): void {
+    this.executablePaths.add(path);
   }
 
   private ensureParentDirs(path: string): void {

@@ -96,6 +96,47 @@ describe('check use case', () => {
     expect(result.outcomes[0]?.result.stderr).not.toContain('Error:');
   });
 
+  it('calls onGateStart listener before each gate', async () => {
+    const pack = createPack('ts', 'TS', [
+      createGate('fmt', 'prettier .', 'fast'),
+      createGate('lint', 'eslint .', 'fast'),
+    ]);
+    const runner = new InMemoryProcessRunner({ 'prettier .': 0, 'eslint .': 0 });
+
+    const started: string[] = [];
+    const listener = { onGateStart: (label: string) => started.push(label) };
+    await check(makeCommand({ packs: [pack], tier: 'fast' }), runner, listener);
+    expect(started).toEqual(['fmt', 'lint']);
+  });
+
+  it('passes timeoutMs to runner when configured', async () => {
+    const pack = createPack('ts', 'TS', [createGate('lint', 'eslint .', 'fast')]);
+    const capturedOptions: ({ timeoutMs?: number } | undefined)[] = [];
+    const capturingRunner = {
+      run: async (_cmd: string, _cwd?: string, options?: { timeoutMs?: number }) => {
+        capturedOptions.push(options);
+        return { exitCode: 0, stdout: '', stderr: '' };
+      },
+    };
+
+    await check(makeCommand({ packs: [pack], tier: 'fast', timeoutMs: 600000 }), capturingRunner);
+    expect(capturedOptions[0]?.timeoutMs).toBe(600000);
+  });
+
+  it('does not pass options when timeoutMs is undefined', async () => {
+    const pack = createPack('ts', 'TS', [createGate('lint', 'eslint .', 'fast')]);
+    const capturedOptions: ({ timeoutMs?: number } | undefined)[] = [];
+    const capturingRunner = {
+      run: async (_cmd: string, _cwd?: string, options?: { timeoutMs?: number }) => {
+        capturedOptions.push(options);
+        return { exitCode: 0, stdout: '', stderr: '' };
+      },
+    };
+
+    await check(makeCommand({ packs: [pack], tier: 'fast' }), capturingRunner);
+    expect(capturedOptions[0]).toBeUndefined();
+  });
+
   it('records failure with stderr when runner throws a non-Error value', async () => {
     const pack = createPack('ts', 'TS', [createGate('lint', 'eslint .', 'fast')]);
     const throwingRunner = {
