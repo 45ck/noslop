@@ -23,7 +23,12 @@
       "Write(tsconfig.build.json)",
       "Write(vitest.config.ts)",
       "Write(.dependency-cruiser.mjs)",
-      "Write(knip.config.ts)"
+      "Write(knip.config.ts)",
+      "Write(.githooks/**)",
+      "Write(.github/workflows/**)",
+      "Write(.claude/settings.json)",
+      "Write(.claude/hooks/**)",
+      "Write(AGENTS.md)"
     ]
   }
 }

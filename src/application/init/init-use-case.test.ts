@@ -280,7 +280,7 @@ describe('init use case', () => {
   });
 });
 
-const SPELL_GATE_CSPELL = createGate('spell', 'cspell --no-progress "{src}/**/*"', 'fast');
+const SPELL_GATE_CSPELL = createGate('spell', 'cspell --no-progress "src/**/*"', 'fast');
 const SPELL_GATE_TYPOS = createGate('spell', 'typos', 'fast');
 
 describe('init use case — spell config generation', () => {

@@ -11,7 +11,12 @@
       "Edit(clippy.toml)",
       "Edit(rustfmt.toml)",
       "Write(clippy.toml)",
-      "Write(rustfmt.toml)"
+      "Write(rustfmt.toml)",
+      "Write(.githooks/**)",
+      "Write(.github/workflows/**)",
+      "Write(.claude/settings.json)",
+      "Write(.claude/hooks/**)",
+      "Write(AGENTS.md)"
     ]
   }
 }

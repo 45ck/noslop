@@ -7,6 +7,7 @@ MSG=$(cat "$MSG_FILE")
 if echo "$MSG" | grep -qiE '\[skip ci\]|skip-checks|--no-verify'; then
   echo "noslop: commit message contains a CI-bypass pattern." >&2
   echo "  Blocked: [skip ci], skip-checks, --no-verify" >&2
+  echo "  Remove the pattern from your commit message. CI checks are required and cannot be skipped." >&2
   exit 1
 fi
 
@@ -16,5 +17,6 @@ if ! echo "$MSG" | grep -qE "$PATTERN"; then
   echo "noslop: commit message does not follow Conventional Commits." >&2
   echo "  Expected: type(scope): description" >&2
   echo "  Types: feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert" >&2
+  echo "  Example: feat(auth): add OAuth2 login flow" >&2
   exit 1
 fi

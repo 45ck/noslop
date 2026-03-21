@@ -13,7 +13,12 @@
       "Edit(prettier.config.mjs)",
       "Write(eslint.config.js)",
       "Write(eslint.config.mjs)",
-      "Write(prettier.config.mjs)"
+      "Write(prettier.config.mjs)",
+      "Write(.githooks/**)",
+      "Write(.github/workflows/**)",
+      "Write(.claude/settings.json)",
+      "Write(.claude/hooks/**)",
+      "Write(AGENTS.md)"
     ]
   }
 }

@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { NodeProcessRunner } from './node-process-runner.js';
 
@@ -7,6 +8,13 @@ describe('NodeProcessRunner', () => {
   it('returns exit code 0 for successful command', async () => {
     const result = await runner.run('node -e "process.exit(0)"');
     expect(result.exitCode).toBe(0);
+  });
+
+  it('finds binaries in node_modules/.bin relative to cwd', async () => {
+    const projectRoot = path.resolve(import.meta.dirname, '..', '..', '..');
+    const result = await runner.run('vitest --version', projectRoot);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toMatch(/\d+\.\d+/);
   });
 
   it('returns non-zero exit code', async () => {

@@ -30,23 +30,9 @@ if echo "$COMMAND" | grep -qF '[skip ci]'; then
 fi
 
 # Block ESLint flag tampering
-if echo "$COMMAND" | grep -qF 'eslint' && echo "$COMMAND" | grep -qF -- '--no-eslintrc'; then
+if echo "$COMMAND" | grep -qw 'eslint' && echo "$COMMAND" | grep -qF -- '--no-eslintrc'; then
   echo '{"decision":"block","reason":"noslop: disabling ESLint rules via CLI flags is not allowed."}'
   exit 0
-fi
-
-# Block direct Edit/Write tool calls to quality gate config files
-TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null)
-FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null)
-
-if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ]; then
-  FILE_BASE=$(basename "$FILE_PATH")
-  case "$FILE_BASE" in
-    eslint.config.*|prettier.config.*|tsconfig*.json|vitest.config.*|jest.config.*|.dependency-cruiser*|knip.config.*)
-      echo '{"decision":"block","reason":"noslop: quality gate configs are protected — modify rules via noslop install, not direct edits."}'
-      exit 0
-      ;;
-  esac
 fi
 
 # Block direct Edit/Write tool calls to quality gate config files

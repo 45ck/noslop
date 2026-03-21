@@ -9,7 +9,12 @@
       "Edit(.claude/settings.json)",
       "Edit(.claude/hooks/**)",
       "Edit(.credo.exs)",
-      "Write(.credo.exs)"
+      "Write(.credo.exs)",
+      "Write(.githooks/**)",
+      "Write(.github/workflows/**)",
+      "Write(.claude/settings.json)",
+      "Write(.claude/hooks/**)",
+      "Write(AGENTS.md)"
     ]
   }
 }

@@ -23,7 +23,7 @@ import { buildSpellConfig } from './spell-options.js';
 
 const program = new Command();
 
-program.name('noslop').description('Enforcement-first quality gate installer').version('0.1.0');
+program.name('noslop').description('Agent-boundary quality gates for any repo').version('1.0.0');
 
 function makePromptResolver(): IConflictResolver {
   return {

@@ -2,8 +2,4 @@
 # noslop pre-push: slow gates (typecheck, tests)
 set -e
 
-if command -v noslop >/dev/null 2>&1; then
-  noslop check --tier=slow
-else
-  npm run typecheck && npm run test
-fi
+npm run typecheck && npm run test

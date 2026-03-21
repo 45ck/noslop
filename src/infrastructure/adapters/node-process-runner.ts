@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { spawn } from 'node:child_process';
 import type { IProcessRunner, RunResult } from '../../application/ports/process-runner.js';
 
@@ -7,11 +8,17 @@ export class NodeProcessRunner implements IProcessRunner {
     // Commands come exclusively from hardcoded pack definitions — never from user input —
     // so there is no command-injection surface here. Do not pass user-supplied strings
     // directly to this method without sanitization.
+    const effectiveCwd = cwd ?? process.cwd();
+    const binDir = path.join(effectiveCwd, 'node_modules', '.bin');
+    const currentPath = process.env['PATH'] ?? '';
+    const env = { ...process.env, PATH: `${binDir}${path.delimiter}${currentPath}` };
+
     return new Promise((resolve) => {
       const proc = spawn(command, {
         cwd,
         shell: true,
         stdio: 'pipe',
+        env,
       });
 
       const stdoutChunks: Buffer[] = [];

@@ -32,7 +32,12 @@ export default tseslint.config(
       'max-lines': ['error', { max: 350, skipBlankLines: true, skipComments: true }],
       'max-params': ['error', 4],
       'sonarjs/cognitive-complexity': ['error', 15],
+    },
+  },
 
+  {
+    files: ['**/*.{ts,tsx,mts,cts}'],
+    rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
     },

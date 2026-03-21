@@ -45,14 +45,14 @@ noslop doctor
 
 ## Gate tiers
 
-| Tier | Trigger        | Command                                                                                                   |
-| ---- | -------------- | --------------------------------------------------------------------------------------------------------- |
-| fast | pre-commit     | `npx prettier --check .`                                                                                  |
-| fast | pre-commit     | `npx eslint .`                                                                                            |
-| fast | pre-commit     | `cspell --no-progress "{src}/**/*"` (spell)                                                               |
-| slow | pre-push       | `npm test`                                                                                                |
-| ci   | GitHub Actions | `npx prettier --check . && npx eslint . && cspell --no-progress "{src}/**/*" && npm test` (full pipeline) |
-| ci   | GitHub Actions | `npx stryker run` (mutation testing)                                                                      |
+| Tier | Trigger        | Command                                                                                                 |
+| ---- | -------------- | ------------------------------------------------------------------------------------------------------- |
+| fast | pre-commit     | `npx prettier --check .`                                                                                |
+| fast | pre-commit     | `npx eslint .`                                                                                          |
+| fast | pre-commit     | `cspell --no-progress "src/**/*"` (spell)                                                               |
+| slow | pre-push       | `npm test`                                                                                              |
+| ci   | GitHub Actions | `npx prettier --check . && npx eslint . && cspell --no-progress "src/**/*" && npm test` (full pipeline) |
+| ci   | GitHub Actions | `npx stryker run` (mutation testing)                                                                    |
 
 ## Verifying
 

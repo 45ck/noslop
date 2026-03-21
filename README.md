@@ -1,10 +1,30 @@
 # noslop
 
-**Enforcement-first quality gate installer.**
+**Agent-boundary quality gates for any repo.**
 
-`noslop` drops pre-commit hooks, CI workflows, and Claude Code guardrails into any existing repository in a single command. It supports 19 language packs. It does not generate project scaffolding or manage dependencies — it installs the enforcement layer on top of what you already have.
+noslop installs three enforcement layers — git hooks, CI required checks, and Claude Code guardrails — into any existing repository with a single command. It supports 19 language packs. It targets teams using Claude Code, Codex CLI, or similar AI coding agents where automated enforcement matters more than developer convenience.
 
----
+## Who this is for
+
+- Teams using Claude Code, Codex CLI, or similar AI coding agents
+- Teams wanting zero-config enforcement on existing repos
+- Repos where agents must not bypass lint, test, or CI gates
+
+## Who this is NOT for
+
+- Greenfield scaffolding — noslop bolts onto existing repos, it does not generate projects
+- Replacing your linter or formatter — noslop enforces what you already have, it does not replace tools
+- Manual-only workflows — if no AI agents touch your code, noslop is overkill
+
+## Prerequisites
+
+| Requirement | Version     | Notes                                                                                                     |
+| ----------- | ----------- | --------------------------------------------------------------------------------------------------------- |
+| Node.js     | 22 or later | Required to run `noslop`                                                                                  |
+| git         | any recent  | Required for hook wiring (`core.hooksPath`)                                                               |
+| `jq`        | any recent  | Required by `.claude/hooks/pre-tool-use.sh`; the hook blocks all Claude Code tool calls if `jq` is absent |
+
+Language toolchains (TypeScript compiler, ESLint, Prettier, Cargo, .NET SDK) must already be present in the target repo. noslop installs the enforcement layer; it does not install the tools themselves.
 
 ## Quick start
 
@@ -35,9 +55,7 @@ Expected output of `noslop doctor` on a healthy install:
 All checks passed.
 ```
 
----
-
-## What you get
+## Three enforcement layers
 
 Three independent enforcement layers, each able to catch bypasses that slip past the previous one:
 
@@ -47,9 +65,25 @@ Three independent enforcement layers, each able to catch bypasses that slip past
 
 **Layer 3 — Claude Code guardrails.** `.claude/settings.json` denies the agent permission to run `--no-verify`, `--force`, or `git push -f`, and denies edits to any protected path. `.claude/hooks/pre-tool-use.sh` intercepts every Bash tool call before execution and blocks bypass patterns. `AGENTS.md` states all rules in plain language for any AI agent working in the repo.
 
----
+## Claude Code quickstart
 
-## What gets dropped into your repo
+**`.claude/settings.json`** — Deny rules that prevent Claude Code from running bypass commands (`--no-verify`, `--force`, `git push -f`) and from editing protected paths (`.githooks/`, `.github/workflows/`, `.claude/`).
+
+**`.claude/hooks/pre-tool-use.sh`** — Intercepts every tool call before execution. Blocks `--no-verify`, `SKIP_CI`, `[skip ci]`, ESLint config-disabling flags, and direct edits to quality gate config files. Returns structured JSON that Claude Code interprets as a hard block.
+
+**`AGENTS.md`** — Plain-language rules that Claude Code reads before working in the repo. Includes gate commands, prohibited actions, and recovery steps when a gate fails.
+
+**Verify:** `noslop doctor` — confirms all three guardrail files are present and hooks are wired.
+
+## Codex quickstart
+
+**`AGENTS.md`** — Codex reads `AGENTS.md` before working. It contains the same rules, gate commands, and recovery steps.
+
+**Optional:** Add a `.codex/config.toml` with `model = "o4-mini"` and any sandbox preferences. noslop does not generate this file.
+
+**Verify:** `noslop doctor` — confirms hooks and CI files are in place.
+
+## What gets installed
 
 ```
 your-repo/
@@ -80,8 +114,6 @@ your-repo/
 - `.claude/settings.json`
 - `.claude/hooks/`
 
----
-
 ## How it works
 
 **Tier system.** Gates are grouped into three tiers mapped to development workflow stages. The pre-commit hook runs `noslop check --tier=fast`; the pre-push hook runs `noslop check --tier=slow`; CI runs the full pipeline. Fast gates complete in seconds so they stay out of the way. The CI tier is authoritative and cannot be skipped by any local trick.
@@ -100,7 +132,12 @@ your-repo/
 
 **Claude guardrails.** The `pre-tool-use.sh` hook intercepts every Bash tool call Claude Code makes before execution and blocks commands containing `--no-verify`, `SKIP_CI`, `[skip ci]`, or ESLint config-disabling flags. Combined with the `settings.json` deny rules, this prevents any AI agent from bypassing the local gates.
 
----
+## Limits and non-goals
+
+- **Repo policy layer, not host-level security.** noslop enforces rules within a repository. It does not sandbox processes or restrict network access.
+- **Does not install toolchains.** Your language's linter, formatter, and test runner must already be available. noslop installs the enforcement config, not the tools.
+- **GitHub Actions only.** CI workflows target GitHub Actions. GitLab CI and Bitbucket Pipelines are not yet supported.
+- **A determined human can still bypass.** Local hooks can be skipped with `--no-verify`. CI is the authoritative gate. noslop makes bypass hard for agents, not impossible for humans.
 
 ## Language packs
 
@@ -129,8 +166,6 @@ Packs are auto-detected from your repo's files. Override detection with `--pack`
 | **OCaml**      | `dune-project`                                                              | [docs/languages/ocaml.md](docs/languages/ocaml.md)           |
 
 > **Note:** JavaScript is not auto-detected. A repo with `package.json` but no `tsconfig.json` still routes to the TypeScript pack by default. Use `--pack javascript` to force the JavaScript pack.
-
----
 
 ## Commands
 
@@ -205,28 +240,6 @@ Options:
 ### `noslop doctor`
 
 Verifies that hooks, CI workflow files, and Claude Code settings are all present and correctly wired. Exits with a non-zero code and lists every failed check if anything is missing.
-
----
-
-## Guides
-
-- [Monorepos](docs/guides/monorepos.md) — installing multiple packs, layout patterns, how gates fire per pack
-- [Greenfield projects](docs/guides/greenfield.md) — setup wizard walkthrough, first-commit checklist, recommended configs per stack
-- [Coding agents](docs/guides/coding-agents.md) — machine-readable install guide for Claude Code, Copilot Workspace, Cursor
-
----
-
-## Requirements
-
-| Requirement | Version     | Notes                                                                                                     |
-| ----------- | ----------- | --------------------------------------------------------------------------------------------------------- |
-| Node.js     | 22 or later | Required to run `noslop`                                                                                  |
-| git         | any recent  | Required for hook wiring (`core.hooksPath`)                                                               |
-| `jq`        | any recent  | Required by `.claude/hooks/pre-tool-use.sh`; the hook blocks all Claude Code tool calls if `jq` is absent |
-
-Language toolchains (TypeScript compiler, ESLint, Prettier, Cargo, .NET SDK) must already be present in the target repo. noslop installs the enforcement layer; it does not install the tools themselves.
-
----
 
 ## Quality policy enforcement matrix
 
@@ -303,7 +316,11 @@ noslop installs a **starter quality config** alongside every pack's gate plumbin
 
 **¹⁶ OCaml** — The OCaml ecosystem has no standalone complexity tool. `dune @check` runs the compiler with full type checking; `ocamlformat` enforces formatting. Warnings-as-errors (`-warn-error +a`) covers unused variables and non-exhaustive patterns. Complexity metrics exist only as proprietary tools without standard config files.
 
----
+## Guides
+
+- [Monorepos](docs/guides/monorepos.md) — installing multiple packs, layout patterns, how gates fire per pack
+- [Greenfield projects](docs/guides/greenfield.md) — setup wizard walkthrough, first-commit checklist, recommended configs per stack
+- [Coding agents](docs/guides/coding-agents.md) — machine-readable install guide for Claude Code, Copilot Workspace, Cursor
 
 ## License
 

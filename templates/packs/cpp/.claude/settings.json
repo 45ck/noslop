@@ -11,7 +11,12 @@
       "Edit(.clang-tidy)",
       "Edit(.clang-format)",
       "Write(.clang-tidy)",
-      "Write(.clang-format)"
+      "Write(.clang-format)",
+      "Write(.githooks/**)",
+      "Write(.github/workflows/**)",
+      "Write(.claude/settings.json)",
+      "Write(.claude/hooks/**)",
+      "Write(AGENTS.md)"
     ]
   }
 }

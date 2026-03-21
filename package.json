@@ -1,7 +1,7 @@
 {
   "name": "@45ck/noslop",
   "version": "1.0.0",
-  "description": "Enforcement-first quality gate installer for TypeScript, Rust, C#, JavaScript, Go, Python, Java, PHP, Ruby, Swift, Kotlin, C++, Scala, Elixir, Dart, Zig, Haskell, Lua, and OCaml.",
+  "description": "Agent-boundary quality gates — git hooks, CI workflows, and Claude Code guardrails for 19 languages.",
   "license": "MIT",
   "type": "module",
   "engines": {

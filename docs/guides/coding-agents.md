@@ -1,6 +1,22 @@
 # noslop — coding agent install guide
 
-This guide is written for AI coding agents (Claude Code, Copilot Workspace, Cursor, and similar tools). Follow it exactly.
+This guide is written for AI coding agents (Claude Code, Codex CLI, Copilot Workspace, Cursor, and similar tools). Follow it exactly.
+
+## Claude Code
+
+Claude Code gets three enforcement layers:
+
+1. **`.claude/settings.json`** — Deny rules that prevent running `--no-verify`, `--force`, `git push -f`, and editing protected paths.
+2. **`.claude/hooks/pre-tool-use.sh`** — Intercepts every tool call before execution. Blocks bypass patterns and returns structured JSON that Claude Code interprets as a hard block.
+3. **`AGENTS.md`** — Plain-language rules read before working in the repo. Includes gate commands, prohibited actions, and recovery steps.
+
+When a tool call is blocked, you will see a JSON response with a `"reason"` field. Read it — it tells you what failed, why, and the exact next step to fix it.
+
+## Codex CLI
+
+Codex reads `AGENTS.md` before working. It contains the same rules, gate commands, and recovery steps as the Claude Code integration.
+
+Optional: Add a `.codex/config.toml` with `model = "o4-mini"` and any sandbox preferences. noslop does not generate this file.
 
 ## Quick install
 
@@ -70,6 +86,7 @@ After `noslop install`, these constraints apply. You MUST NOT violate them:
 3. **Gate must pass before committing.** Run `noslop check --tier=fast` and confirm it exits 0 before staging any commit.
 4. **Do not use force push.** Never run `git push -f` or `git push --force`.
 5. **Do not disable linters inline.** Do not add `// eslint-disable`, `#noqa`, `// NOLINT`, or equivalent suppression comments to pass a gate.
+6. **Do not skip CI.** Never use `[skip ci]`, `skip-checks`, or `SKIP_CI` in commit messages or CI configuration. CI is the authoritative quality gate and cannot be bypassed.
 
 ## Before every commit
 
@@ -107,6 +124,63 @@ All checks passed.
 ```
 
 Exit code 0 = healthy. Any non-zero exit code means one or more checks failed — read the output and re-run `noslop install` to repair.
+
+## If a gate blocks you
+
+1. Read the full error output — it tells you what failed and where
+2. Fix the code (do not disable the rule or bypass the hook)
+3. Rerun the gate: `noslop check --tier=fast`
+4. Once it passes, stage and commit normally
+
+## Block message examples
+
+When the pre-tool-use hook blocks a tool call, you will receive a JSON response like:
+
+**--no-verify attempt:**
+
+```json
+{
+  "decision": "block",
+  "reason": "noslop: --no-verify bypasses pre-commit hooks and is not allowed. Run 'noslop check --tier=fast' to see what is failing, fix the reported errors, then commit without --no-verify."
+}
+```
+
+**CI-skip pattern:**
+
+```json
+{
+  "decision": "block",
+  "reason": "noslop: CI-skip patterns (SKIP_CI, [skip ci]) are not allowed. CI is the authoritative quality gate and cannot be bypassed. Remove the skip pattern and let CI run normally."
+}
+```
+
+**Config file edit:**
+
+```json
+{
+  "decision": "block",
+  "reason": "noslop: editing 'eslint.config.js' is blocked — quality gate configs are protected. To change rules, run 'noslop install' to regenerate from templates, or ask a human to apply the noslop-approved PR label."
+}
+```
+
+When the commit-msg hook rejects a message:
+
+**CI-bypass pattern in commit message:**
+
+```
+noslop: commit message contains a CI-bypass pattern.
+  Blocked: [skip ci], skip-checks, --no-verify
+  Remove the pattern from your commit message. CI checks are required and cannot be skipped.
+```
+
+**Invalid Conventional Commits format:**
+
+```
+noslop: commit message does not follow Conventional Commits.
+  Expected: type(scope): description
+  Types: feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert
+  Example: feat(auth): add OAuth2 login flow
+```
 
 ## What noslop installs
 

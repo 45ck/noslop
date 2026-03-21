@@ -95,14 +95,17 @@ describe('git hooks — all packs', () => {
       expect(content.startsWith('#!/bin/sh')).toBe(true);
     });
 
-    it(`${packId}/.githooks/pre-commit contains noslop check`, () => {
+    it(`${packId}/.githooks/pre-commit protects gate infrastructure files`, () => {
       const content = readTemplate(packId, '.githooks/pre-commit');
-      expect(content).toContain('noslop check');
+      expect(content).toContain('.githooks/*');
+      expect(content).toContain('.github/workflows/*');
+      expect(content).toContain('.claude/hooks/*');
+      expect(content).toContain('AGENTS.md');
     });
 
-    it(`${packId}/.githooks/pre-commit has command -v noslop fallback`, () => {
+    it(`${packId}/.githooks/pre-commit uses npm run (not broken noslop shim)`, () => {
       const content = readTemplate(packId, '.githooks/pre-commit');
-      expect(content).toContain('command -v noslop');
+      expect(content).not.toContain('command -v noslop');
     });
   }
 });
@@ -134,6 +137,17 @@ describe('.claude/settings.json — all packs', () => {
     it(`${packId}/.claude/settings.json is valid JSON`, () => {
       const content = readTemplate(packId, '.claude/settings.json');
       expect(() => JSON.parse(content)).not.toThrow();
+    });
+
+    it(`${packId}/.claude/settings.json denies Write to hook infrastructure`, () => {
+      const content = readTemplate(packId, '.claude/settings.json');
+      const settings = JSON.parse(content);
+      const deny: string[] = settings.permissions?.deny ?? [];
+      expect(deny).toContain('Write(.githooks/**)');
+      expect(deny).toContain('Write(.github/workflows/**)');
+      expect(deny).toContain('Write(.claude/hooks/**)');
+      expect(deny).toContain('Write(.claude/settings.json)');
+      expect(deny).toContain('Write(AGENTS.md)');
     });
   }
 });
@@ -366,4 +380,115 @@ describe('config files — zig and ocaml (no standalone config)', () => {
     expect(templateExists('zig', 'clippy.toml')).toBe(false);
     expect(templateExists('zig', '.golangci.yml')).toBe(false);
   });
+});
+
+describe('pre-tool-use.sh — all packs', () => {
+  for (const packId of ALL_PACK_IDS) {
+    it(`${packId}/pre-tool-use.sh starts with #!/bin/sh`, () => {
+      const content = readTemplate(packId, '.claude/hooks/pre-tool-use.sh');
+      expect(content.startsWith('#!/bin/sh')).toBe(true);
+    });
+
+    it(`${packId}/pre-tool-use.sh has exactly one Block direct Edit/Write comment`, () => {
+      const content = readTemplate(packId, '.claude/hooks/pre-tool-use.sh');
+      const matches = content.match(/^# Block direct Edit\/Write/gm);
+      expect(matches).toHaveLength(1);
+    });
+
+    it(`${packId}/pre-tool-use.sh ends with allow decision`, () => {
+      const content = readTemplate(packId, '.claude/hooks/pre-tool-use.sh');
+      expect(content.trim()).toMatch(/echo '\{"decision":"allow"\}'\s*$/);
+    });
+
+    it(`${packId}/pre-tool-use.sh has actionable jq block message`, () => {
+      const content = readTemplate(packId, '.claude/hooks/pre-tool-use.sh');
+      expect(content).toContain('jq is not installed');
+      expect(content).toContain('Install jq');
+    });
+
+    it(`${packId}/pre-tool-use.sh has actionable --no-verify block message`, () => {
+      const content = readTemplate(packId, '.claude/hooks/pre-tool-use.sh');
+      expect(content).toContain('--no-verify bypasses pre-commit hooks and is not allowed');
+      expect(content).toContain('noslop check --tier=fast');
+    });
+
+    it(`${packId}/pre-tool-use.sh has actionable CI-skip block message`, () => {
+      const content = readTemplate(packId, '.claude/hooks/pre-tool-use.sh');
+      expect(content).toContain('CI-skip patterns');
+      expect(content).toContain('cannot be bypassed');
+    });
+
+    it(`${packId}/pre-tool-use.sh has actionable config edit block message`, () => {
+      const content = readTemplate(packId, '.claude/hooks/pre-tool-use.sh');
+      expect(content).toContain('quality gate configs are protected');
+      expect(content).toContain('noslop install');
+    });
+
+    it(`${packId}/pre-tool-use.sh protects gate infrastructure files`, () => {
+      const content = readTemplate(packId, '.claude/hooks/pre-tool-use.sh');
+      expect(content).toContain('.githooks/');
+      expect(content).toContain('.github/workflows/');
+      expect(content).toContain('AGENTS.md');
+    });
+  }
+
+  it('typescript/pre-tool-use.sh has ESLint --no-eslintrc block', () => {
+    const content = readTemplate('typescript', '.claude/hooks/pre-tool-use.sh');
+    expect(content).toContain('--no-eslintrc is not allowed');
+    expect(content).toContain('npx eslint');
+  });
+});
+
+describe('AGENTS.md — all packs', () => {
+  for (const packId of ALL_PACK_IDS) {
+    it(`${packId}/AGENTS.md mentions noslop`, () => {
+      const content = readTemplate(packId, 'AGENTS.md');
+      expect(content).toContain('noslop');
+    });
+
+    it(`${packId}/AGENTS.md has recovery section`, () => {
+      const content = readTemplate(packId, 'AGENTS.md');
+      expect(content).toContain('If a gate blocks you');
+    });
+
+    it(`${packId}/AGENTS.md prohibits --no-verify`, () => {
+      const content = readTemplate(packId, 'AGENTS.md');
+      expect(content).toMatch(/[Nn]ever.*--no-verify/);
+    });
+
+    it(`${packId}/AGENTS.md prohibits --force`, () => {
+      const content = readTemplate(packId, 'AGENTS.md');
+      expect(content).toMatch(/[Nn]ever.*--force/);
+    });
+
+    it(`${packId}/AGENTS.md prohibits [skip ci]`, () => {
+      const content = readTemplate(packId, 'AGENTS.md');
+      expect(content).toMatch(/[Nn]ever.*\[skip ci\]/);
+    });
+
+    it(`${packId}/AGENTS.md has fallback commands`, () => {
+      const content = readTemplate(packId, 'AGENTS.md');
+      expect(content).toContain('Fast tier fallback commands');
+      expect(content).toContain('Slow tier fallback commands');
+    });
+  }
+});
+
+describe('commit-msg — all packs', () => {
+  for (const packId of ALL_PACK_IDS) {
+    it(`${packId}/commit-msg starts with #!/bin/sh`, () => {
+      const content = readTemplate(packId, '.githooks/commit-msg');
+      expect(content.startsWith('#!/bin/sh')).toBe(true);
+    });
+
+    it(`${packId}/commit-msg has CI-bypass remediation text`, () => {
+      const content = readTemplate(packId, '.githooks/commit-msg');
+      expect(content).toContain('Remove the pattern from your commit message');
+    });
+
+    it(`${packId}/commit-msg has Conventional Commits example`, () => {
+      const content = readTemplate(packId, '.githooks/commit-msg');
+      expect(content).toContain('Example: feat(auth): add OAuth2 login flow');
+    });
+  }
 });

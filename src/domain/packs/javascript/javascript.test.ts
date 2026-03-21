@@ -29,7 +29,7 @@ describe('JAVASCRIPT_PACK', () => {
   it('spell gate is fast with exact command', () => {
     const g = gate(JAVASCRIPT_PACK, 'spell');
     expect(g?.tier).toBe('fast');
-    expect(g?.command).toBe('cspell --no-progress "{src}/**/*"');
+    expect(g?.command).toBe('cspell --no-progress "src/**/*"');
   });
 
   it('test gate is slow with exact command', () => {
@@ -42,7 +42,7 @@ describe('JAVASCRIPT_PACK', () => {
     const g = gate(JAVASCRIPT_PACK, 'ci-full');
     expect(g?.tier).toBe('ci');
     expect(g?.command).toBe(
-      'npx prettier --check . && npx eslint . && cspell --no-progress "{src}/**/*" && npm test',
+      'npx prettier --check . && npx eslint . && cspell --no-progress "src/**/*" && npm test',
     );
   });
 

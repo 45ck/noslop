@@ -1,9 +1,5 @@
 #!/bin/sh
-# noslop pre-push: slow gates (tests)
+# noslop pre-push: slow gates (typecheck, tests)
 set -e
 
-if command -v noslop >/dev/null 2>&1; then
-  noslop check --tier=slow
-else
-  sbt test
-fi
+sbt test

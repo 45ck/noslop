@@ -11,7 +11,12 @@
       "Edit(pyproject.toml)",
       "Edit(setup.cfg)",
       "Write(pyproject.toml)",
-      "Write(setup.cfg)"
+      "Write(setup.cfg)",
+      "Write(.githooks/**)",
+      "Write(.github/workflows/**)",
+      "Write(.claude/settings.json)",
+      "Write(.claude/hooks/**)",
+      "Write(AGENTS.md)"
     ]
   }
 }

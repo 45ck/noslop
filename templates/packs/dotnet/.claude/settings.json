@@ -11,7 +11,12 @@
       "Edit(Directory.Build.props)",
       "Edit(.editorconfig)",
       "Write(Directory.Build.props)",
-      "Write(.editorconfig)"
+      "Write(.editorconfig)",
+      "Write(.githooks/**)",
+      "Write(.github/workflows/**)",
+      "Write(.claude/settings.json)",
+      "Write(.claude/hooks/**)",
+      "Write(AGENTS.md)"
     ]
   }
 }

@@ -2,8 +2,7 @@
 # noslop pre-commit: fast gates (format, lint, spell)
 set -e
 
-# Block commits that modify protected quality gate config files.
-# Uses line-by-line comparison to avoid substring false positives.
+# Block commits that modify protected quality gate config or hook files.
 PROTECTED_CONFIGS="pyproject.toml setup.cfg"
 while IFS= read -r staged_file; do
   for cfg in $PROTECTED_CONFIGS; do
@@ -12,12 +11,14 @@ while IFS= read -r staged_file; do
       exit 1
     fi
   done
+  case "$staged_file" in
+    .githooks/*|.github/workflows/*|.claude/hooks/*|.claude/settings.json|AGENTS.md)
+      echo "noslop: $staged_file is protected gate infrastructure — changes cannot be committed." >&2
+      exit 1
+      ;;
+  esac
 done << STAGED
 $(git diff --cached --name-only 2>/dev/null)
 STAGED
 
-if command -v noslop >/dev/null 2>&1; then
-  noslop check --tier=fast
-else
-  black --check . && ruff check .
-fi
+black --check . && ruff check . && typos
