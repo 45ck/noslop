@@ -1,0 +1,27 @@
+{
+  "project": "csv-transform",
+  "totalTasks": 10,
+  "completedCount": 4,
+  "completedItems": [
+    "Set up project scaffolding",
+    "Implement CSV parser with streaming support",
+    "Add column selection transform",
+    "Add row filtering transform"
+  ],
+  "currentItem": "Add column rename transform",
+  "remainingItems": [
+    "Add output format selection (CSV, JSON, TSV)",
+    "Add CLI argument parsing with yargs",
+    "Add --dry-run flag",
+    "Write integration tests",
+    "Add error handling for malformed CSV"
+  ],
+  "lastRecitationAt": {
+    "taskNumber": 4,
+    "taskName": "Add row filtering transform"
+  },
+  "nextRecitationDue": {
+    "taskNumber": 7,
+    "taskName": "Add --dry-run flag"
+  }
+}

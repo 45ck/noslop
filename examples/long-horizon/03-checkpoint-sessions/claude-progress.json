@@ -1,0 +1,42 @@
+{
+  "planFile": ".claude/plans/migration-plan.md",
+  "currentCheckpoint": "3b",
+  "status": "in_progress",
+  "checkpoints": [
+    {
+      "id": "1",
+      "title": "Audit & Plan",
+      "status": "done",
+      "completedAt": "2026-03-18T10:30:00Z"
+    },
+    {
+      "id": "2",
+      "title": "Schema Migration",
+      "status": "done",
+      "completedAt": "2026-03-18T14:15:00Z"
+    },
+    {
+      "id": "3",
+      "title": "Repository Layer",
+      "status": "failed",
+      "failedAt": "2026-03-19T09:45:00Z",
+      "error": "Foreign key constraint failed on product_reviews_user_id_fkey: test seed references user_id=999 which does not exist"
+    },
+    {
+      "id": "3b",
+      "title": "Repository Layer Recovery",
+      "status": "in_progress",
+      "startedAt": "2026-03-19T10:00:00Z"
+    },
+    {
+      "id": "4",
+      "title": "API Layer",
+      "status": "pending"
+    },
+    {
+      "id": "5",
+      "title": "Data Migration & Cleanup",
+      "status": "pending"
+    }
+  ]
+}
