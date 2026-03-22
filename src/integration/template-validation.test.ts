@@ -149,6 +149,25 @@ describe('.claude/settings.json — all packs', () => {
       expect(deny).toContain('Write(.claude/settings.json)');
       expect(deny).toContain('Write(AGENTS.md)');
     });
+
+    it(`${packId}/.claude/settings.json uses glob prefix for config file deny rules`, () => {
+      const content = readTemplate(packId, '.claude/settings.json');
+      const settings = JSON.parse(content);
+      const deny: string[] = settings.permissions?.deny ?? [];
+      // All Edit/Write rules for config files (not infrastructure dirs) must use
+      // **/ prefix to prevent absolute-path bypass.
+      const configRules = deny.filter((rule) => {
+        const m = /^(Edit|Write)\((.+)\)$/.exec(rule);
+        if (!m) return false;
+        const pattern = m[2];
+        // Skip infrastructure dirs (already relative) and AGENTS.md (always at root)
+        if (pattern.startsWith('.') || pattern === 'AGENTS.md') return false;
+        return true;
+      });
+      for (const rule of configRules) {
+        expect(rule).toMatch(/\((\*\*\/)/);
+      }
+    });
   }
 });
 
