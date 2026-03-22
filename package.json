@@ -32,7 +32,8 @@
   },
   "files": [
     "dist/**",
-    "templates/**"
+    "templates/**",
+    "!dist/**/*.map"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -58,17 +59,6 @@
     "prepare": "node scripts/prepare.mjs",
     "prepublishOnly": "npm run ci"
   },
-  "lint-staged": {
-    "*.{ts,tsx,js,mjs,cjs}": [
-      "eslint --fix",
-      "prettier --write",
-      "cspell --no-progress --config cspell.json"
-    ],
-    "*.{md,mdx,json,yml,yaml}": [
-      "prettier --write",
-      "cspell --no-progress --config cspell.json"
-    ]
-  },
   "dependencies": {
     "@clack/prompts": "^1.0.1",
     "chalk": "^5.6.2",
@@ -93,9 +83,7 @@
     "eslint-plugin-unicorn": "^63.0.0",
     "eslint-plugin-unused-imports": "^4.0.0",
     "globals": "^17.0.0",
-    "husky": "^9.0.0",
     "knip": "^5.0.0",
-    "lint-staged": "^16.0.0",
     "prettier": "^3.0.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.0.0",
