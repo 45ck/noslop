@@ -28,9 +28,12 @@ export class NodeProcessRunner implements IProcessRunner {
     // directly to this method without sanitization.
     const effectiveCwd = options?.cwd ?? cwd ?? process.cwd();
     const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const binDir = path.join(effectiveCwd, 'node_modules', '.bin');
+    const binPaths = [
+      path.join(effectiveCwd, 'node_modules', '.bin'),
+      path.join(effectiveCwd, 'vendor', 'bin'),
+    ].join(path.delimiter);
     const currentPath = process.env['PATH'] ?? '';
-    const env = { ...process.env, PATH: `${binDir}${path.delimiter}${currentPath}` };
+    const env = { ...process.env, PATH: `${binPaths}${path.delimiter}${currentPath}` };
 
     return new Promise((resolve) => {
       const proc = spawn(command, {

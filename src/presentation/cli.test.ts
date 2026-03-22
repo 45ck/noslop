@@ -30,13 +30,27 @@ describe('detectPacks', () => {
     expect(packs).toEqual([TYPESCRIPT_PACK]);
   });
 
-  it('detects TypeScript pack when package.json exists', async () => {
+  it('does not detect TypeScript pack from package.json alone (falls back to default)', async () => {
     const fs = new InMemoryFilesystem();
     fs.seed('/project/package.json', '{}');
 
     const packs = await detectPacks('/project', fs);
 
+    // package.json alone no longer triggers TypeScript detection.
+    // Since no other pack indicators are present, the default fallback applies.
     expect(packs).toEqual([TYPESCRIPT_PACK]);
+  });
+
+  it('detects only PHP pack when composer.json and package.json both exist', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/project/composer.json', '{}');
+    fs.seed('/project/package.json', '{}');
+
+    const packs = await detectPacks('/project', fs);
+
+    expect(packs).toContain(PHP_PACK);
+    expect(packs).not.toContain(TYPESCRIPT_PACK);
+    expect(packs).toHaveLength(1);
   });
 
   it('detects Rust pack when Cargo.toml exists', async () => {

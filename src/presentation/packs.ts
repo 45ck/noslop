@@ -45,14 +45,11 @@ export const ALL_PACKS: Pack[] = [
 export async function detectPacks(targetDir: string, fs: IFilesystem): Promise<Pack[]> {
   const detected: Pack[] = [];
 
-  // TypeScript detection also covers pure JavaScript repos (both use package.json).
-  // For repos that explicitly don't use TypeScript, use --pack=javascript.
-  const tsIndicators = ['tsconfig.json', 'package.json'];
-  for (const indicator of tsIndicators) {
-    if (await fs.exists(`${targetDir}/${indicator}`)) {
-      detected.push(TYPESCRIPT_PACK);
-      break;
-    }
+  // TypeScript detection triggers only on tsconfig.json to avoid false positives
+  // in non-TypeScript projects (e.g., PHP+Laravel) that have package.json for asset building.
+  // For repos that need TypeScript gates without tsconfig.json, use --pack=typescript.
+  if (await fs.exists(`${targetDir}/tsconfig.json`)) {
+    detected.push(TYPESCRIPT_PACK);
   }
 
   if (await fs.exists(`${targetDir}/Cargo.toml`)) {
