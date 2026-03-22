@@ -1,21 +1,219 @@
 #!/bin/sh
-# noslop pre-commit: fast gates (format, lint, spell)
+# noslop pre-commit: content-aware quality gate protection
+#
+# Two-tier protection:
+#   1. Content-aware: quality configs — block weakening, allow strengthening
+#   2. Content-aware: infrastructure files — block weakening, allow strengthening
+#
+# Tier 2 splits by file role:
+#   - Enforcement files (.githooks/*, .claude/hooks/*, AGENTS.md):
+#     Check that enforcement logic is preserved. These files naturally
+#     contain bypass keywords in detection patterns and documentation.
+#   - CI/config (.github/workflows/*, .claude/settings.json):
+#     Full content check for removal of quality commands, addition of
+#     bypass patterns, and enforcement removal.
 set -e
 
-# Block commits that modify protected quality gate config files.
-# Uses line-by-line comparison to avoid substring false positives
-# (e.g. eslint.config.js must not match eslint.config.mjs).
-PROTECTED_CONFIGS="eslint.config.js prettier.config.mjs tsconfig.json tsconfig.build.json vitest.config.ts .dependency-cruiser.mjs knip.config.ts"
+# --- Cache staged file list ---
+STAGED_FILES=$(git diff --cached --name-only 2>/dev/null)
+
+# --- Quality command regex ---
+QUALITY_CMD_RE='npm run (ci|test|lint|format:check|spell|typecheck)|npx (vitest|eslint|prettier|cspell)|vitest run|eslint \.|prettier \.|noslop check'
+
+# Check for net removal of quality commands in a diff.
+# Returns 0 (true = blocked) if more quality commands are removed than added.
+check_quality_cmd_removal() {
+  _diff="$1"
+  _file="$2"
+  _removed=$(echo "$_diff" | grep -cE "^\-.*($QUALITY_CMD_RE)" 2>/dev/null || true)
+  _added=$(echo "$_diff" | grep -cE "^\+.*($QUALITY_CMD_RE)" 2>/dev/null || true)
+  if [ "${_removed:-0}" -gt "${_added:-0}" ]; then
+    echo "noslop: $_file has net removal of quality gate commands — blocked." >&2
+    return 0
+  fi
+  return 1
+}
+
+# --- Tier 1: Content-aware quality config protection ---
+# Block weakening changes; allow strengthening changes to quality configs.
 while IFS= read -r staged_file; do
-  for cfg in $PROTECTED_CONFIGS; do
-    if [ "$staged_file" = "$cfg" ]; then
-      echo "noslop: $cfg is a protected quality gate config — changes cannot be committed." >&2
-      exit 1
-    fi
-  done
-done << STAGED
-$(git diff --cached --name-only 2>/dev/null)
-STAGED
+  case "$staged_file" in
+    eslint.config.mjs)
+      DIFF=$(git diff --cached -- "$staged_file")
+      # Block: adding disabled rules ('off')
+      if echo "$DIFF" | grep -qE "^\+.*['\"]off['\"]"; then
+        echo "noslop: $staged_file adds disabled rules ('off') — blocked." >&2
+        echo "  Strengthening changes (new 'error' rules, tighter limits) are allowed." >&2
+        echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+        exit 1
+      fi
+      # Block: adding eslint-disable comments
+      if echo "$DIFF" | grep -qE '^\+.*eslint-disable'; then
+        echo "noslop: $staged_file adds eslint-disable — blocked." >&2
+        echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+        exit 1
+      fi
+      # Block: net removal of 'error' rules
+      REMOVED_ERR=$(echo "$DIFF" | grep -cE "^\-.*['\"]error['\"]" 2>/dev/null || true)
+      ADDED_ERR=$(echo "$DIFF" | grep -cE "^\+.*['\"]error['\"]" 2>/dev/null || true)
+      if [ "${REMOVED_ERR:-0}" -gt "${ADDED_ERR:-0}" ]; then
+        echo "noslop: $staged_file has net removal of 'error' rules — blocked." >&2
+        echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+        exit 1
+      fi
+      ;;
+    vitest.config.ts)
+      DIFF=$(git diff --cached -- "$staged_file")
+      # Check each coverage metric for threshold lowering
+      for metric in statements branches functions lines; do
+        OLD_VAL=$(echo "$DIFF" | grep -E "^\-.*$metric" | grep -oE '[0-9]+' | tail -1)
+        NEW_VAL=$(echo "$DIFF" | grep -E "^\+.*$metric" | grep -oE '[0-9]+' | tail -1)
+        if [ -n "$OLD_VAL" ] && [ -n "$NEW_VAL" ] && [ "$NEW_VAL" -lt "$OLD_VAL" ]; then
+          echo "noslop: $staged_file lowers $metric threshold ($OLD_VAL -> $NEW_VAL) — blocked." >&2
+          echo "  Raising thresholds is allowed." >&2
+          echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+          exit 1
+        fi
+      done
+      # Block: removal of threshold lines without replacement
+      REMOVED_TH=$(echo "$DIFF" | grep -cE '^\-[[:space:]]*(statements|branches|functions|lines)' 2>/dev/null || true)
+      ADDED_TH=$(echo "$DIFF" | grep -cE '^\+[[:space:]]*(statements|branches|functions|lines)' 2>/dev/null || true)
+      if [ "${REMOVED_TH:-0}" -gt "${ADDED_TH:-0}" ]; then
+        echo "noslop: $staged_file removes coverage thresholds — blocked." >&2
+        echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+        exit 1
+      fi
+      ;;
+    tsconfig.json|tsconfig.build.json)
+      DIFF=$(git diff --cached -- "$staged_file")
+      # Block: adding strict: false
+      if echo "$DIFF" | grep -qE '^\+.*"strict[^"]*"[[:space:]]*:[[:space:]]*false'; then
+        echo "noslop: $staged_file sets a strict flag to false — blocked." >&2
+        echo "  Adding strict flags with true is allowed." >&2
+        echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+        exit 1
+      fi
+      # Block: net removal of strict flags set to true
+      STRICT_RE='"strict[^"]*"[[:space:]]*:[[:space:]]*true'
+      REMOVED_ST=$(echo "$DIFF" | grep -cE "^\-.*$STRICT_RE" 2>/dev/null || true)
+      ADDED_ST=$(echo "$DIFF" | grep -cE "^\+.*$STRICT_RE" 2>/dev/null || true)
+      if [ "${REMOVED_ST:-0}" -gt "${ADDED_ST:-0}" ]; then
+        echo "noslop: $staged_file has net removal of strict flags — blocked." >&2
+        echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+        exit 1
+      fi
+      ;;
+    .dependency-cruiser.cjs)
+      DIFF=$(git diff --cached -- "$staged_file")
+      # Block: net removal of forbidden rules (name: lines)
+      REMOVED_NM=$(echo "$DIFF" | grep -cE '^\-[[:space:]]*name[[:space:]]*:' 2>/dev/null || true)
+      ADDED_NM=$(echo "$DIFF" | grep -cE '^\+[[:space:]]*name[[:space:]]*:' 2>/dev/null || true)
+      if [ "${REMOVED_NM:-0}" -gt "${ADDED_NM:-0}" ]; then
+        echo "noslop: $staged_file has net removal of forbidden rules — blocked." >&2
+        echo "  Adding new rules is allowed." >&2
+        echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+        exit 1
+      fi
+      # Block: severity downgrade to warn/info/off
+      if echo "$DIFF" | grep -qE "^\+.*severity[[:space:]]*:[[:space:]]*['\"]?(warn|info|off)['\"]?"; then
+        echo "noslop: $staged_file downgrades rule severity — blocked." >&2
+        echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+        exit 1
+      fi
+      ;;
+    knip.json)
+      DIFF=$(git diff --cached -- "$staged_file")
+      # Block: adding ignoreExportsUsedInFile
+      if echo "$DIFF" | grep -qE '^\+.*"ignoreExportsUsedInFile"'; then
+        echo "noslop: $staged_file adds ignoreExportsUsedInFile — blocked." >&2
+        echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+        exit 1
+      fi
+      # Block: net expansion of ignore/ignoreDependencies
+      for key in ignore ignoreDependencies; do
+        REMOVED_K=$(echo "$DIFF" | grep -cE "^\-.*\"$key\"" 2>/dev/null || true)
+        ADDED_K=$(echo "$DIFF" | grep -cE "^\+.*\"$key\"" 2>/dev/null || true)
+        if [ "${ADDED_K:-0}" -gt "${REMOVED_K:-0}" ]; then
+          echo "noslop: $staged_file expands $key — blocked." >&2
+          echo "  Adding new entry points is allowed." >&2
+          echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+          exit 1
+        fi
+      done
+      ;;
+  esac
+done << STAGED_T1
+$STAGED_FILES
+STAGED_T1
+
+# --- Tier 2a: Enforcement files — check enforcement preservation ---
+# These files ARE the enforcement mechanism or its documentation, so they
+# naturally reference bypass keywords. Only verify enforcement is preserved.
+while IFS= read -r staged_file; do
+  case "$staged_file" in
+    .githooks/*|.claude/hooks/*|AGENTS.md)
+      DIFF=$(git diff --cached -- "$staged_file")
+
+      # Block net removal of quality commands (rewrites are fine)
+      if check_quality_cmd_removal "$DIFF" "$staged_file"; then
+        exit 1
+      fi
+
+      # Block net removal of enforcement (exit 1 removed without replacement)
+      REMOVED_EXIT=$(echo "$DIFF" | grep -cE '^\-[[:space:]]*exit 1' 2>/dev/null || true)
+      ADDED_EXIT=$(echo "$DIFF" | grep -cE '^\+[[:space:]]*exit 1' 2>/dev/null || true)
+      if [ "${REMOVED_EXIT:-0}" -gt "${ADDED_EXIT:-0}" ]; then
+        echo "noslop: $staged_file has net removal of enforcement (exit 1) — blocked." >&2
+        exit 1
+      fi
+
+      # Block net removal of set -e
+      REMOVED_SETE=$(echo "$DIFF" | grep -cE '^\-[[:space:]]*set -e' 2>/dev/null || true)
+      ADDED_SETE=$(echo "$DIFF" | grep -cE '^\+[[:space:]]*set -e' 2>/dev/null || true)
+      if [ "${REMOVED_SETE:-0}" -gt "${ADDED_SETE:-0}" ]; then
+        echo "noslop: $staged_file has net removal of set -e (fail-on-error) — blocked." >&2
+        exit 1
+      fi
+      ;;
+  esac
+done << STAGED_T2A
+$STAGED_FILES
+STAGED_T2A
+
+# --- Tier 2b: CI workflows and settings — full content check ---
+while IFS= read -r staged_file; do
+  case "$staged_file" in
+    .github/workflows/*|.claude/settings.json)
+      DIFF=$(git diff --cached -- "$staged_file")
+
+      # Block net removal of quality commands
+      if check_quality_cmd_removal "$DIFF" "$staged_file"; then
+        echo "  If intentional, submit via PR with the 'noslop-approved' label." >&2
+        exit 1
+      fi
+
+      # Block addition of bypass/weakening patterns
+      BYPASS_LINES=$(echo "$DIFF" \
+        | grep -iE '^\+.*(continue-on-error:[[:space:]]*true|\[skip ci\]|SKIP_CI|skip-checks|--no-verify)' \
+        | grep -ivE '(deny|block|"Bash)' || true)
+      if [ -n "$BYPASS_LINES" ]; then
+        echo "noslop: $staged_file adds a quality bypass pattern — blocked." >&2
+        echo "  Matched: $(echo "$BYPASS_LINES" | head -1)" >&2
+        exit 1
+      fi
+
+      # Block net removal of enforcement (exit 1 removed without replacement)
+      REMOVED_EXIT=$(echo "$DIFF" | grep -cE '^\-[[:space:]]*exit 1' 2>/dev/null || true)
+      ADDED_EXIT=$(echo "$DIFF" | grep -cE '^\+[[:space:]]*exit 1' 2>/dev/null || true)
+      if [ "${REMOVED_EXIT:-0}" -gt "${ADDED_EXIT:-0}" ]; then
+        echo "noslop: $staged_file has net removal of enforcement (exit 1) — blocked." >&2
+        exit 1
+      fi
+      ;;
+  esac
+done << STAGED_T2B
+$STAGED_FILES
+STAGED_T2B
 
 if command -v noslop >/dev/null 2>&1; then
   noslop check --tier=fast
