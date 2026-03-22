@@ -1,5 +1,10 @@
 # noslop
 
+[![CI](https://github.com/45ck/noslop/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/45ck/noslop/actions/workflows/quality.yml)
+[![npm version](https://img.shields.io/npm/v/%4045ck%2Fnoslop)](https://www.npmjs.com/package/@45ck/noslop)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
+
 **Agent-boundary quality gates for any repo.**
 
 noslop installs three enforcement layers — git hooks, CI required checks, and Claude Code guardrails — into any existing repository with a single command. It supports 19 language packs. It targets teams using Claude Code, Codex CLI, or similar AI coding agents where automated enforcement matters more than developer convenience.
