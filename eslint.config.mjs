@@ -1,6 +1,10 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import importPlugin from 'eslint-plugin-import';
+// License: SONAR Source-Available License v1.0 (non-OSS) — changed from LGPL.
+// Has non-compete and anti-AI-training clauses. Acceptable as a dev-only
+// dependency (not shipped in the npm package). If ever reconsidered, most rules
+// have equivalents in unicorn / @typescript-eslint.
 import sonarjs from 'eslint-plugin-sonarjs';
 import eslintComments from 'eslint-plugin-eslint-comments';
 import unicorn from 'eslint-plugin-unicorn';

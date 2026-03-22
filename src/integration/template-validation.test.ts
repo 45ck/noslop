@@ -160,6 +160,7 @@ describe('.claude/settings.json — all packs', () => {
         const m = /^(Edit|Write)\((.+)\)$/.exec(rule);
         if (!m) return false;
         const pattern = m[2];
+        if (!pattern) return false;
         // Skip infrastructure dirs (already relative) and AGENTS.md (always at root)
         if (pattern.startsWith('.') || pattern === 'AGENTS.md') return false;
         return true;
