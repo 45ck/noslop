@@ -20,6 +20,6 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "vitest.config.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts", "vitest.acceptance.config.ts"],
   "exclude": ["dist", "node_modules", "coverage"]
 }

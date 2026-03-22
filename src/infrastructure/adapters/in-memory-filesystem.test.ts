@@ -167,4 +167,44 @@ describe('InMemoryFilesystem', () => {
     expect(fs.chmodCalls[0]).toEqual({ path: '/a.sh', mode: 0o755 });
     expect(fs.chmodCalls[1]).toEqual({ path: '/b.sh', mode: 0o644 });
   });
+
+  it('rm removes a file', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/file.txt', 'content');
+    expect(await fs.exists('/file.txt')).toBe(true);
+    await fs.rm('/file.txt');
+    expect(await fs.exists('/file.txt')).toBe(false);
+  });
+
+  it('rm silently ignores non-existent files', async () => {
+    const fs = new InMemoryFilesystem();
+    await expect(fs.rm('/nonexistent.txt')).resolves.toBeUndefined();
+  });
+
+  it('rmdir removes an empty directory', async () => {
+    const fs = new InMemoryFilesystem();
+    await fs.mkdir('/empty');
+    expect(await fs.exists('/empty')).toBe(true);
+    await fs.rmdir('/empty');
+    expect(await fs.exists('/empty')).toBe(false);
+  });
+
+  it('rmdir with recursive removes directory and contents', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/dir/a.txt', 'a');
+    fs.seed('/dir/sub/b.txt', 'b');
+    await fs.rmdir('/dir', { recursive: true });
+    expect(await fs.exists('/dir/a.txt')).toBe(false);
+    expect(await fs.exists('/dir/sub/b.txt')).toBe(false);
+    expect(await fs.exists('/dir')).toBe(false);
+  });
+
+  it('rmdir recursive does not affect sibling directories', async () => {
+    const fs = new InMemoryFilesystem();
+    fs.seed('/a/file.txt', 'a');
+    fs.seed('/b/file.txt', 'b');
+    await fs.rmdir('/a', { recursive: true });
+    expect(await fs.exists('/a/file.txt')).toBe(false);
+    expect(await fs.exists('/b/file.txt')).toBe(true);
+  });
 });

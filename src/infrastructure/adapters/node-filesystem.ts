@@ -55,6 +55,18 @@ export class NodeFilesystem implements IFilesystem {
       return false;
     }
   }
+
+  async rm(filePath: string): Promise<void> {
+    await fsp.rm(filePath, { force: true });
+  }
+
+  async rmdir(filePath: string, options?: { recursive?: boolean }): Promise<void> {
+    if (options?.recursive) {
+      await fsp.rm(filePath, { recursive: true, force: true });
+    } else {
+      await fsp.rmdir(filePath);
+    }
+  }
 }
 
 export function resolveTemplatesDir(): string {

@@ -34,7 +34,7 @@ describe('CLI spawn tests', () => {
     expect(distExists).toBe(true);
   });
 
-  it('--help exits 0 and lists all 7 commands', () => {
+  it('--help exits 0 and lists all 8 commands', () => {
     if (!distExists) return;
     const result = cli(['--help']);
     expect(result.status).toBe(0);
@@ -45,7 +45,11 @@ describe('CLI spawn tests', () => {
     expect(out).toContain('list');
     expect(out).toContain('check');
     expect(out).toContain('doctor');
+    expect(out).toContain('uninstall');
     expect(out).toContain('setup');
+    expect(out).toContain('Exit codes:');
+    expect(out).toContain('Gate failure');
+    expect(out).toContain('Config error');
   });
 
   it('--version exits 0 and matches package.json version', () => {
@@ -72,7 +76,7 @@ describe('CLI spawn tests', () => {
       const result = cli(['doctor', '--dir', tmpDir]);
       expect(result.status).toBe(1);
     } finally {
-      await fsp.rm(tmpDir, { recursive: true, force: true });
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     }
   });
 
@@ -90,7 +94,7 @@ describe('CLI spawn tests', () => {
       const preCommit = path.join(tmpDir, '.githooks', 'pre-commit');
       expect(existsSync(preCommit)).toBe(true);
     } finally {
-      await fsp.rm(tmpDir, { recursive: true, force: true });
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     }
   });
 
@@ -107,7 +111,7 @@ describe('CLI spawn tests', () => {
       expect(result.stdout).toContain('TypeScript');
       expect(result.stdout).toContain('Rust');
     } finally {
-      await fsp.rm(tmpDir, { recursive: true, force: true });
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     }
   });
 
@@ -130,7 +134,36 @@ describe('CLI spawn tests', () => {
       expect(result.stdout).toContain('noslop update');
       expect(await fsp.readFile(userConfig, 'utf8')).toBe('// my custom config');
     } finally {
-      await fsp.rm(tmpDir, { recursive: true, force: true });
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+    }
+  });
+
+  it('doctor --json outputs valid JSON with expected schema', { timeout: 20_000 }, async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-doc-json-'));
+    try {
+      execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.email "t@t.com"', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.name "T"', { cwd: tmpDir, stdio: 'ignore' });
+
+      cli(['install', '--pack', 'rust', '--dir', tmpDir]);
+
+      const result = cli(['doctor', '--json', '--dir', tmpDir]);
+      expect(result.status).toBe(0);
+      const out = String(result.stdout).trim();
+      const parsed = JSON.parse(out) as {
+        healthy: boolean;
+        checks: { name: string; passed: boolean; detail: string }[];
+      };
+      expect(typeof parsed.healthy).toBe('boolean');
+      expect(Array.isArray(parsed.checks)).toBe(true);
+      for (const check of parsed.checks) {
+        expect(typeof check.name).toBe('string');
+        expect(typeof check.passed).toBe('boolean');
+        expect(typeof check.detail).toBe('string');
+      }
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     }
   });
 
@@ -148,7 +181,7 @@ describe('CLI spawn tests', () => {
       const doctorResult = cli(['doctor', '--dir', tmpDir]);
       expect(doctorResult.status).toBe(0);
     } finally {
-      await fsp.rm(tmpDir, { recursive: true, force: true });
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     }
   });
 
@@ -167,7 +200,7 @@ describe('CLI spawn tests', () => {
       const entries = await fsp.readdir(tmpDir);
       expect(entries).toEqual([]);
     } finally {
-      await fsp.rm(tmpDir, { recursive: true, force: true });
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     }
   });
 
@@ -195,7 +228,7 @@ describe('CLI spawn tests', () => {
         expect(typeof gate.exitCode).toBe('number');
       }
     } finally {
-      await fsp.rm(tmpDir, { recursive: true, force: true });
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     }
   });
 
@@ -222,7 +255,7 @@ describe('CLI spawn tests', () => {
       const labels = parsed.gates.map((g) => g.label);
       expect(labels).not.toContain('spell');
     } finally {
-      await fsp.rm(tmpDir, { recursive: true, force: true });
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     }
   });
 
@@ -237,7 +270,7 @@ describe('CLI spawn tests', () => {
       // With --verbose, output should show the tier header and gate results
       expect(out).toContain('noslop check --tier=fast');
     } finally {
-      await fsp.rm(tmpDir, { recursive: true, force: true });
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     }
   });
 
@@ -270,7 +303,75 @@ describe('CLI spawn tests', () => {
       expect(labels).not.toContain('mutation');
       expect(labels).not.toContain('spell');
     } finally {
-      await fsp.rm(tmpDir, { recursive: true, force: true });
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+    }
+  });
+
+  it('uninstall removes noslop infrastructure after install', { timeout: 20_000 }, async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-remove-'));
+    try {
+      execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.email "t@t.com"', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.name "T"', { cwd: tmpDir, stdio: 'ignore' });
+
+      const installResult = cli(['install', '--pack', 'rust', '--dir', tmpDir]);
+      expect(installResult.status).toBe(0);
+      expect(existsSync(path.join(tmpDir, '.githooks', 'pre-commit'))).toBe(true);
+      expect(existsSync(path.join(tmpDir, 'AGENTS.md'))).toBe(true);
+
+      const uninstallResult = cli(['uninstall', '--dir', tmpDir]);
+      expect(uninstallResult.status).toBe(0);
+      expect(existsSync(path.join(tmpDir, '.githooks'))).toBe(false);
+      expect(existsSync(path.join(tmpDir, 'AGENTS.md'))).toBe(false);
+      expect(existsSync(path.join(tmpDir, '.claude'))).toBe(false);
+
+      // User config files should remain
+      expect(existsSync(path.join(tmpDir, 'clippy.toml'))).toBe(true);
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+    }
+  });
+
+  it('uninstall --json outputs valid JSON', { timeout: 20_000 }, async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-rm-json-'));
+    try {
+      execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.email "t@t.com"', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.name "T"', { cwd: tmpDir, stdio: 'ignore' });
+
+      cli(['install', '--pack', 'rust', '--dir', tmpDir]);
+
+      const result = cli(['uninstall', '--json', '--dir', tmpDir]);
+      expect(result.status).toBe(0);
+      const parsed = JSON.parse(String(result.stdout).trim()) as {
+        filesRemoved: string[];
+        dirsRemoved: string[];
+        hooksReset: boolean;
+      };
+      expect(Array.isArray(parsed.filesRemoved)).toBe(true);
+      expect(Array.isArray(parsed.dirsRemoved)).toBe(true);
+      expect(typeof parsed.hooksReset).toBe('boolean');
+      expect(parsed.filesRemoved.length).toBeGreaterThan(0);
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+    }
+  });
+
+  it('install --quiet suppresses non-essential output', async () => {
+    if (!distExists) return;
+    const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'noslop-cli-spawn-quiet-'));
+    try {
+      execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.email "t@t.com"', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.name "T"', { cwd: tmpDir, stdio: 'ignore' });
+
+      const result = cli(['install', '--quiet', '--pack', 'rust', '--dir', tmpDir]);
+      expect(result.status).toBe(0);
+      expect(String(result.stdout).trim()).toBe('');
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     }
   });
 
@@ -358,7 +459,7 @@ describe('CLI spawn tests', () => {
       expect(existsSync(path.join(tmpDir, 'detekt.yml'))).toBe(true);
       expect(existsSync(path.join(tmpDir, 'Directory.Build.props'))).toBe(true);
     } finally {
-      await fsp.rm(tmpDir, { recursive: true, force: true });
+      await fsp.rm(tmpDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
     }
   });
 });

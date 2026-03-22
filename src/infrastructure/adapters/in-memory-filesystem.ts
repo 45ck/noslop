@@ -79,6 +79,28 @@ export class InMemoryFilesystem implements IFilesystem {
     return this.executablePaths.has(path);
   }
 
+  async rm(path: string): Promise<void> {
+    this.files.delete(path);
+    this.executablePaths.delete(path);
+  }
+
+  async rmdir(path: string, options?: { recursive?: boolean }): Promise<void> {
+    if (options?.recursive) {
+      const prefix = path.endsWith('/') ? path : `${path}/`;
+      for (const key of [...this.files.keys()]) {
+        if (key.startsWith(prefix)) this.files.delete(key);
+      }
+      for (const key of [...this.dirs]) {
+        if (key === path || key.startsWith(prefix)) this.dirs.delete(key);
+      }
+      for (const key of [...this.executablePaths]) {
+        if (key.startsWith(prefix)) this.executablePaths.delete(key);
+      }
+    } else {
+      this.dirs.delete(path);
+    }
+  }
+
   /** Mark a file as executable in tests (simulates chmod +x). */
   markExecutable(path: string): void {
     this.executablePaths.add(path);

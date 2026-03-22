@@ -484,4 +484,18 @@ describe('init use case — spell config generation', () => {
     expect(result.filesWritten).toContain('/target/cspell.json');
     expect(result.filesWritten).toContain('/target/.typos.toml');
   });
+
+  it('cspell.json content is prettier-formatted', async () => {
+    const pack = createPack('typescript', 'TypeScript', [SPELL_GATE_CSPELL]);
+    const fs = new InMemoryFilesystem();
+    const runner = new InMemoryProcessRunner();
+    const config = createConfig(['typescript'], [], DEFAULT_SPELL_CONFIG);
+
+    await init(makeCommand({ packs: [pack], config }), fs, runner, makeResolver());
+
+    const content = await fs.readFile('/target/cspell.json');
+    const prettier = await import('prettier');
+    const formatted = await prettier.format(content, { parser: 'json' });
+    expect(content).toBe(formatted);
+  });
 });

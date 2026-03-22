@@ -8,4 +8,6 @@ export interface IFilesystem {
   isDirectory(path: string): Promise<boolean>;
   chmod(path: string, mode: number): Promise<void>;
   isExecutable(path: string): Promise<boolean>;
+  rm(path: string): Promise<void>;
+  rmdir(path: string, options?: { recursive?: boolean }): Promise<void>;
 }

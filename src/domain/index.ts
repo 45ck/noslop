@@ -4,6 +4,7 @@ export * from './pack/pack.js';
 export * from './pack/toolchain.js';
 export * from './config/noslop-config.js';
 export * from './config/project-config.js';
+export * from './config/uninstall-manifest.js';
 export * from './packs/typescript/typescript.js';
 export * from './packs/rust/rust.js';
 export * from './packs/dotnet/dotnet.js';

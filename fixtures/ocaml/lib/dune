@@ -1,0 +1,3 @@
+(library
+ (name calculator)
+ (public_name calculator))

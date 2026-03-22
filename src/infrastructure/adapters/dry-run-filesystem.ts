@@ -1,7 +1,7 @@
 import type { IFilesystem } from '../../application/ports/filesystem.js';
 
 export type RecordedWrite = Readonly<{
-  type: 'writeFile' | 'copyFile' | 'mkdir' | 'chmod';
+  type: 'writeFile' | 'copyFile' | 'mkdir' | 'chmod' | 'rm' | 'rmdir';
   path: string;
 }>;
 
@@ -57,5 +57,13 @@ export class DryRunFilesystem implements IFilesystem {
 
   async isExecutable(path: string): Promise<boolean> {
     return this.delegate.isExecutable(path);
+  }
+
+  async rm(path: string): Promise<void> {
+    this.recorded.push({ type: 'rm', path });
+  }
+
+  async rmdir(path: string, _options?: { recursive?: boolean }): Promise<void> {
+    this.recorded.push({ type: 'rmdir', path });
   }
 }

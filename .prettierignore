@@ -4,3 +4,5 @@ reports
 .tsbuildinfo
 node_modules
 examples
+fixtures
+experiment

@@ -48,12 +48,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:acceptance": "npm run build && vitest run --config vitest.acceptance.config.ts",
     "mutation": "stryker run",
     "audit:high": "node scripts/ci/audit-high.mjs",
     "start": "node dist/presentation/cli.js",
     "ci": "npm run typecheck && npm run lint && npm run format:check && npm run spell && npm run depcruise && npm run knip && npm run build && npm run test:coverage && npm run audit:high",
     "ci:nightly": "npm run ci && npm run mutation",
-    "prepare": "node scripts/prepare.mjs"
+    "prepare": "node scripts/prepare.mjs",
+    "prepublishOnly": "npm run ci"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs,cjs}": [

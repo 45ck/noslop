@@ -300,9 +300,47 @@ Options:
   -d, --dir <path>   Target directory (default: current working directory)
 ```
 
+### `noslop uninstall`
+
+Removes all noslop-installed infrastructure files and resets git hook configuration. User config files (ESLint, pyproject, clippy, etc.) are left untouched.
+
+```
+noslop uninstall [options]
+
+Options:
+  -d, --dir <path>   Target directory (default: current working directory)
+  --dry-run          Show what would be removed without deleting
+  --json             Emit machine-readable JSON output
+```
+
+**What gets removed:**
+
+- `.githooks/` directory
+- `.github/workflows/quality.yml`, `.github/workflows/guardrails.yml`
+- `.claude/settings.json`, `.claude/hooks/` directory
+- `AGENTS.md`
+- `scripts/check`, `scripts/fmt`, `scripts/lint`, `scripts/test`, `scripts/typecheck`, `scripts/mutation`, `scripts/spell`, `scripts/build`
+- Empty parent directories (`.claude/`, `.github/workflows/`, `.github/`, `scripts/`)
+- `git config core.hooksPath` is unset
+
+**What is NOT removed:**
+
+- Language-specific config files (`eslint.config.js`, `pyproject.toml`, `clippy.toml`, etc.)
+- `.noslop.json`, `cspell.json`, `.typos.toml`
+
 ### `noslop doctor`
 
 Verifies that hooks, CI workflow files, and Claude Code settings are all present and correctly wired. Exits with a non-zero code and lists every failed check if anything is missing.
+
+## Exit codes
+
+| Code | Constant            | Meaning                                                                          |
+| ---- | ------------------- | -------------------------------------------------------------------------------- |
+| `0`  | `EXIT_SUCCESS`      | All checks / gates passed, command completed successfully.                       |
+| `1`  | `EXIT_GATE_FAILURE` | One or more gates failed (`check`) or health checks failed (`doctor`).           |
+| `2`  | `EXIT_CONFIG_ERROR` | Invalid configuration: unknown pack, bad `--tier` value, missing `--dir` target. |
+
+CI scripts can rely on these codes to distinguish between gate failures and config errors.
 
 ## Quality policy enforcement matrix
 

@@ -7,3 +7,6 @@ test-results/
 *.tsbuildinfo
 .stryker-tmp/
 pnpm-lock.yaml
+experiment/with-noslop/
+experiment/without-noslop/
+experiment/results/

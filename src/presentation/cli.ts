@@ -3,7 +3,6 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import * as p from '@clack/prompts';
 import { init } from '../application/init/init-use-case.js';
-import { doctor } from '../application/doctor/doctor-use-case.js';
 import { loadProjectConfig } from '../application/config/load-project-config.js';
 import type { IConflictResolver } from '../application/ports/conflict-resolver.js';
 import {
@@ -13,8 +12,13 @@ import {
   AlwaysOverwriteConflictResolver,
   AlwaysSkipConflictResolver,
 } from '../infrastructure/index.js';
-import { createConfig, DEFAULT_PROTECTED_PATHS } from '../domain/config/noslop-config.js';
-import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILURE } from '../domain/exit-code.js';
+import {
+  createConfig,
+  DEFAULT_PROTECTED_PATHS,
+  type NoslopConfig,
+} from '../domain/config/noslop-config.js';
+import type { Pack } from '../domain/pack/pack.js';
+import { EXIT_CONFIG_ERROR } from '../domain/exit-code.js';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -25,6 +29,8 @@ import { buildSpellConfig } from './spell-options.js';
 import { runDryInit } from './dry-run.js';
 import { runCheck } from './check-command.js';
 import { runList } from './list-command.js';
+import { runDoctor } from './doctor-command.js';
+import { runUninstall } from './uninstall-command.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../../package.json') as { version: string };
@@ -32,6 +38,17 @@ const { version } = require('../../package.json') as { version: string };
 const program = new Command();
 
 program.name('noslop').description('Agent-boundary quality gates for any repo').version(version);
+
+program.option('-q, --quiet', 'suppress non-essential output');
+
+program.addHelpText(
+  'after',
+  `
+Exit codes:
+  0   Success — command completed, all gates/checks passed
+  1   Gate failure — one or more quality gates or doctor checks failed
+  2   Config error — invalid pack, tier, or missing target directory`,
+);
 
 function makePromptResolver(): IConflictResolver {
   return {
@@ -48,6 +65,61 @@ function validateDir(dir: string, command: string): void {
     console.error(chalk.red(`${command}: directory does not exist: ${dir}`));
     process.exit(EXIT_CONFIG_ERROR);
   }
+}
+
+function isQuiet(): boolean {
+  return Boolean(program.opts()['quiet']);
+}
+
+function log(msg: string): void {
+  if (!isQuiet()) console.log(msg);
+}
+
+interface CommandContext {
+  fs: NodeFilesystem;
+  runner: NodeProcessRunner;
+  targetDir: string;
+  templatesDir: string;
+  packs: Pack[];
+  config: NoslopConfig;
+}
+
+async function resolveCommandContext(
+  commandName: string,
+  options: {
+    dir: string;
+    pack: string[];
+    spell?: boolean;
+    spellLanguage?: string;
+    spellWords?: string;
+  },
+): Promise<CommandContext> {
+  validateDir(options.dir, `noslop ${commandName}`);
+  const fs = new NodeFilesystem();
+  const runner = new NodeProcessRunner();
+  const targetDir = options.dir;
+  const templatesDir = resolveTemplatesDir();
+  const projectConfig = await loadProjectConfig(targetDir, fs);
+  const packs = await resolvePacks(options.pack, projectConfig, targetDir, fs);
+
+  if (packs.length === 0) {
+    const allIds = ALL_PACKS.map((p) => p.id).join(', ');
+    console.error(chalk.red(`noslop ${commandName}: unknown pack(s): ${options.pack.join(', ')}`));
+    console.error(chalk.dim(`Available packs: ${allIds}`));
+    process.exit(EXIT_CONFIG_ERROR);
+  }
+
+  const spell =
+    options.spell !== undefined
+      ? buildSpellConfig(!options.spell, options.spellLanguage, options.spellWords)
+      : undefined;
+  const config = createConfig(
+    packs.map((p) => p.id),
+    [...DEFAULT_PROTECTED_PATHS],
+    spell,
+  );
+
+  return { fs, runner, targetDir, templatesDir, packs, config };
 }
 
 program
@@ -73,50 +145,33 @@ program
       spellWords?: string;
       dryRun?: boolean;
     }) => {
-      validateDir(options.dir, 'noslop init');
-      const nodeFs = new NodeFilesystem();
-      const targetDir = options.dir;
-      const templatesDir = resolveTemplatesDir();
-      const projectConfig = await loadProjectConfig(targetDir, nodeFs);
-      const packs = await resolvePacks(options.pack, projectConfig, targetDir, nodeFs);
-
-      if (packs.length === 0) {
-        const allIds = ALL_PACKS.map((p) => p.id).join(', ');
-        console.error(chalk.red(`noslop init: unknown pack(s): ${options.pack.join(', ')}`));
-        console.error(chalk.dim(`Available packs: ${allIds}`));
-        process.exit(EXIT_CONFIG_ERROR);
-      }
-
-      const config = createConfig(
-        packs.map((p) => p.id),
-        [...DEFAULT_PROTECTED_PATHS],
-        buildSpellConfig(!options.spell, options.spellLanguage, options.spellWords),
+      const { fs, runner, targetDir, templatesDir, packs, config } = await resolveCommandContext(
+        'init',
+        options,
       );
 
       if (options.dryRun) {
-        await runDryInit({ targetDir, templatesDir, packs, config }, nodeFs);
+        await runDryInit({ targetDir, templatesDir, packs, config }, fs);
         return;
       }
 
-      console.log(chalk.cyan(`noslop init → ${targetDir}`));
-      console.log(chalk.dim(`Packs: ${packs.map((p) => p.name).join(', ')}`));
+      log(chalk.cyan(`noslop init → ${targetDir}`));
+      log(chalk.dim(`Packs: ${packs.map((p) => p.name).join(', ')}`));
 
-      const fs = nodeFs;
-      const runner = new NodeProcessRunner();
       const resolver = makePromptResolver();
       const result = await init({ targetDir, templatesDir, packs, config }, fs, runner, resolver);
 
       for (const file of result.filesWritten) {
-        console.log(chalk.green(`  ✓ ${file}`));
+        log(chalk.green(`  ✓ ${file}`));
       }
 
       if (result.hooksConfigured) {
-        console.log(chalk.green('  ✓ git core.hooksPath = .githooks'));
+        log(chalk.green('  ✓ git core.hooksPath = .githooks'));
       } else {
-        console.log(chalk.yellow('  ⚠ hooks not configured (not a git repo?)'));
+        log(chalk.yellow('  ⚠ hooks not configured (not a git repo?)'));
       }
 
-      console.log(chalk.bold('\nDone. Run noslop doctor to verify.'));
+      log(chalk.bold('\nDone. Run noslop doctor to verify.'));
     },
   );
 
@@ -143,39 +198,22 @@ program
       spellWords?: string;
       dryRun?: boolean;
     }) => {
-      validateDir(options.dir, 'noslop install');
-      const nodeFs = new NodeFilesystem();
-      const targetDir = options.dir;
-      const templatesDir = resolveTemplatesDir();
-      const projectConfig = await loadProjectConfig(targetDir, nodeFs);
-      const packs = await resolvePacks(options.pack, projectConfig, targetDir, nodeFs);
-
-      if (packs.length === 0) {
-        const allIds = ALL_PACKS.map((p) => p.id).join(', ');
-        console.error(chalk.red(`noslop install: unknown pack(s): ${options.pack.join(', ')}`));
-        console.error(chalk.dim(`Available packs: ${allIds}`));
-        process.exit(EXIT_CONFIG_ERROR);
-      }
-
-      const config = createConfig(
-        packs.map((p) => p.id),
-        [...DEFAULT_PROTECTED_PATHS],
-        buildSpellConfig(!options.spell, options.spellLanguage, options.spellWords),
+      const { fs, runner, targetDir, templatesDir, packs, config } = await resolveCommandContext(
+        'install',
+        options,
       );
 
       if (options.dryRun) {
-        await runDryInit({ targetDir, templatesDir, packs, config }, nodeFs);
+        await runDryInit({ targetDir, templatesDir, packs, config }, fs);
         return;
       }
 
-      const fs = nodeFs;
-      const runner = new NodeProcessRunner();
       const resolver = new AlwaysOverwriteConflictResolver();
       const result = await init({ targetDir, templatesDir, packs, config }, fs, runner, resolver);
       const packNames = packs.map((p) => p.name).join(', ');
       const fileCount = result.filesWritten.length;
       const hookStatus = result.hooksConfigured ? 'hooks wired' : 'hooks skipped';
-      console.log(`noslop install: ${packNames} — ${fileCount} files written, ${hookStatus}`);
+      log(`noslop install: ${packNames} — ${fileCount} files written, ${hookStatus}`);
     },
   );
 
@@ -190,32 +228,18 @@ program
     [] as string[],
   )
   .action(async (options: { dir: string; pack: string[] }) => {
-    validateDir(options.dir, 'noslop update');
-    const fs = new NodeFilesystem();
-    const runner = new NodeProcessRunner();
-    const targetDir = options.dir;
-    const templatesDir = resolveTemplatesDir();
-    const projectConfig = await loadProjectConfig(targetDir, fs);
-    const packs = await resolvePacks(options.pack, projectConfig, targetDir, fs);
-
-    if (packs.length === 0) {
-      const allIds = ALL_PACKS.map((p) => p.id).join(', ');
-      console.error(chalk.red(`noslop update: unknown pack(s): ${options.pack.join(', ')}`));
-      console.error(chalk.dim(`Available packs: ${allIds}`));
-      process.exit(EXIT_CONFIG_ERROR);
-    }
-
-    const config = createConfig(
-      packs.map((p) => p.id),
-      [...DEFAULT_PROTECTED_PATHS],
+    const { fs, runner, targetDir, templatesDir, packs, config } = await resolveCommandContext(
+      'update',
+      options,
     );
+
     const resolver = new AlwaysSkipConflictResolver();
     const result = await init({ targetDir, templatesDir, packs, config }, fs, runner, resolver);
     const packNames = packs.map((p) => p.name).join(', ');
     const fileCount = result.filesWritten.length;
     const hookStatus = result.hooksConfigured ? 'hooks wired' : 'hooks skipped';
-    console.log(`noslop update: ${packNames} — ${fileCount} files updated, ${hookStatus}`);
-    console.log('User config files (eslint, pyproject, etc.) were not overwritten.');
+    log(`noslop update: ${packNames} — ${fileCount} files updated, ${hookStatus}`);
+    log('User config files (eslint, pyproject, etc.) were not overwritten.');
   });
 
 program
@@ -252,33 +276,23 @@ program
   .description('Verify hooks, CI files, and Claude Code settings are wired')
   .option('-d, --dir <path>', 'target directory', process.cwd())
   .option('--strict', 'treat missing toolchain binaries as failures')
-  .action(async (options: { dir: string; strict?: boolean }) => {
+  .option('--json', 'emit machine-readable JSON output')
+  .action(async (options: { dir: string; strict?: boolean; json?: boolean }) => {
     validateDir(options.dir, 'noslop doctor');
-    const fs = new NodeFilesystem();
-    const runner = new NodeProcessRunner();
-    const projectConfig = await loadProjectConfig(options.dir, fs);
-    const packs = await resolvePacks([], projectConfig, options.dir, fs);
+    const quiet = options.json ?? isQuiet();
+    await runDoctor({ ...options, quiet });
+  });
 
-    console.log(chalk.cyan(`noslop doctor → ${options.dir}`));
-
-    const doctorCommand = options.strict
-      ? { targetDir: options.dir, packs, strict: true }
-      : { targetDir: options.dir, packs };
-    const result = await doctor(doctorCommand, fs, runner);
-
-    for (const checkItem of result.checks) {
-      const icon = checkItem.passed ? chalk.green('✓') : chalk.red('✗');
-      console.log(`  ${icon} ${checkItem.name}`);
-      console.log(chalk.dim(`    ${checkItem.detail}`));
-    }
-
-    if (result.healthy) {
-      console.log(chalk.green('\nAll checks passed — repo is protected.'));
-    } else {
-      const failed = result.checks.filter((c) => !c.passed).length;
-      console.log(chalk.red(`\n${failed} check(s) failed — run: noslop init`));
-      process.exit(EXIT_GATE_FAILURE);
-    }
+program
+  .command('uninstall')
+  .description('Remove noslop-installed files and reset git hooks')
+  .option('-d, --dir <path>', 'target directory', process.cwd())
+  .option('--dry-run', 'show what would be removed without deleting')
+  .option('--json', 'emit machine-readable JSON output')
+  .action(async (options: { dir: string; dryRun?: boolean; json?: boolean }) => {
+    validateDir(options.dir, 'noslop uninstall');
+    const quiet = options.json ?? isQuiet();
+    await runUninstall({ ...options, quiet });
   });
 
 program

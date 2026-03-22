@@ -37,19 +37,23 @@ function mapLocale(language: string): string {
   return language;
 }
 
+function jsonArray(items: readonly string[]): string {
+  return '[' + items.map((i) => JSON.stringify(i)).join(', ') + ']';
+}
+
 function buildCspellJson(spell: SpellConfig): string {
-  return JSON.stringify(
-    {
-      $schema:
-        'https://raw.githubusercontent.com/streetsidesoftware/cspell/main/packages/cspell-types/cspell.schema.json',
-      version: '0.2',
-      language: spell.language,
-      words: spell.words,
-      ignorePaths: ['node_modules/**', 'dist/**', 'build/**', '.git/**', '*.lock'],
-    },
-    null,
-    2,
-  );
+  const words = jsonArray(spell.words);
+  const ignore = jsonArray(['node_modules/**', 'dist/**', 'build/**', '.git/**', '*.lock']);
+  const schema =
+    'https://raw.githubusercontent.com/streetsidesoftware/cspell/main/packages/cspell-types/cspell.schema.json';
+  return `{
+  "$schema": "${schema}",
+  "version": "0.2",
+  "language": "${spell.language}",
+  "words": ${words},
+  "ignorePaths": ${ignore}
+}
+`;
 }
 
 function buildTyposToml(spell: SpellConfig): string {
