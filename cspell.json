@@ -119,6 +119,7 @@
     "dryrun",
     "javac",
     "kotlinlang",
+    "llms",
     "scalac"
   ],
   "ignorePaths": [
@@ -129,6 +130,7 @@
     "package-lock.json",
     "templates/**",
     "examples/**",
-    "fixtures/**"
+    "fixtures/**",
+    "llms*.txt"
   ]
 }

@@ -1,0 +1,94 @@
+# noslop
+
+> Agent-boundary quality gates for any repo. Installs git hooks, CI required checks, and Claude Code guardrails with one command. Supports 19 language packs. npm package: @45ck/noslop. Node.js 22+ required.
+
+## Quick install
+
+```sh
+npm install -g @45ck/noslop
+cd your-repo
+noslop init
+noslop doctor
+```
+
+## What it does
+
+noslop installs three independent enforcement layers into an existing repository: local git hooks (pre-commit, pre-push, commit-msg), GitHub Actions CI workflows (required checks + guardrails), and Claude Code guardrails (.claude/settings.json deny rules + pre-tool-use hook). Each layer catches bypasses that slip past the previous one. Gates run your project's own toolchain — noslop installs the enforcement config, not the tools themselves.
+
+## Key concepts
+
+- **Gate**: A single quality check with a label, shell command, and tier. Value object.
+- **Pack**: A named set of gates for a specific language. 19 packs ship with noslop.
+- **Tier**: Execution context — `fast` (pre-commit: format, lint, spell), `slow` (pre-push: typecheck, tests), `ci` (GitHub Actions: full pipeline).
+- **Protected path**: Files agents cannot edit after install (`.githooks/`, `.github/workflows/`, `.claude/`).
+
+## Supported languages
+
+| Pack | Detected by |
+|------|-------------|
+| TypeScript | `tsconfig.json`, `package.json` |
+| JavaScript | not auto-detected — use `--pack javascript` |
+| Rust | `Cargo.toml` |
+| .NET / C# | `.csproj`, `.sln`, `global.json` |
+| Python | `pyproject.toml`, `setup.py`, `requirements.txt` |
+| Go | `go.mod` |
+| Java | `pom.xml`, `build.gradle` (no `.kt` in `src/`) |
+| Ruby | `Gemfile` |
+| Kotlin | `build.gradle` + `.kt` files in `src/` |
+| Swift | `Package.swift` |
+| PHP | `composer.json` |
+| Scala | `build.sbt` |
+| Elixir | `mix.exs` |
+| Dart | `pubspec.yaml` |
+| Haskell | `.cabal` |
+| Lua | `.rockspec` |
+| C / C++ | `CMakeLists.txt` |
+| Zig | `build.zig` |
+| OCaml | `dune-project` |
+
+## Commands
+
+- `noslop init` — Detect packs, install templates, wire git hooks. Interactive.
+- `noslop install` — Same as init but non-interactive. For CI and agents.
+- `noslop check --tier=<fast|slow|ci>` — Run quality gates for the given tier.
+- `noslop update` — Re-install hooks/CI from latest templates, preserve user configs.
+- `noslop setup` — Interactive wizard with guided prompts.
+- `noslop uninstall` — Remove all noslop infrastructure; leave user configs.
+- `noslop doctor` — Verify hooks, CI, and Claude settings are present and wired.
+
+## Exit codes
+
+- `0` — Success. All checks/gates passed.
+- `1` — Gate failure. One or more gates or doctor checks failed.
+- `2` — Config error. Unknown pack, bad tier, missing target.
+
+## Documentation
+
+- [llms-full.txt](https://github.com/45ck/noslop/blob/main/llms-full.txt): Complete documentation in a single file for full context loading
+- [README](https://github.com/45ck/noslop/blob/main/README.md): Full documentation
+- [Coding agents guide](https://github.com/45ck/noslop/blob/main/docs/guides/coding-agents.md): Machine-readable install guide for AI agents
+- [Glossary](https://github.com/45ck/noslop/blob/main/docs/glossary.md): Domain terms and architecture concepts
+
+## Optional
+
+- [TypeScript pack](https://github.com/45ck/noslop/blob/main/docs/languages/typescript.md)
+- [JavaScript pack](https://github.com/45ck/noslop/blob/main/docs/languages/javascript.md)
+- [Rust pack](https://github.com/45ck/noslop/blob/main/docs/languages/rust.md)
+- [.NET / C# pack](https://github.com/45ck/noslop/blob/main/docs/languages/dotnet.md)
+- [Python pack](https://github.com/45ck/noslop/blob/main/docs/languages/python.md)
+- [Go pack](https://github.com/45ck/noslop/blob/main/docs/languages/go.md)
+- [Java pack](https://github.com/45ck/noslop/blob/main/docs/languages/java.md)
+- [Ruby pack](https://github.com/45ck/noslop/blob/main/docs/languages/ruby.md)
+- [Kotlin pack](https://github.com/45ck/noslop/blob/main/docs/languages/kotlin.md)
+- [Swift pack](https://github.com/45ck/noslop/blob/main/docs/languages/swift.md)
+- [PHP pack](https://github.com/45ck/noslop/blob/main/docs/languages/php.md)
+- [Scala pack](https://github.com/45ck/noslop/blob/main/docs/languages/scala.md)
+- [Elixir pack](https://github.com/45ck/noslop/blob/main/docs/languages/elixir.md)
+- [Dart pack](https://github.com/45ck/noslop/blob/main/docs/languages/dart.md)
+- [Haskell pack](https://github.com/45ck/noslop/blob/main/docs/languages/haskell.md)
+- [Lua pack](https://github.com/45ck/noslop/blob/main/docs/languages/lua.md)
+- [C / C++ pack](https://github.com/45ck/noslop/blob/main/docs/languages/cpp.md)
+- [Zig pack](https://github.com/45ck/noslop/blob/main/docs/languages/zig.md)
+- [OCaml pack](https://github.com/45ck/noslop/blob/main/docs/languages/ocaml.md)
+- [Monorepos guide](https://github.com/45ck/noslop/blob/main/docs/guides/monorepos.md)
+- [Greenfield guide](https://github.com/45ck/noslop/blob/main/docs/guides/greenfield.md)

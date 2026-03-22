@@ -6,3 +6,5 @@ node_modules
 examples
 fixtures
 experiment
+llms.txt
+llms-full.txt
