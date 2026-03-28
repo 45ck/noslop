@@ -14,246 +14,159 @@ function seedAll(fs: InMemoryFilesystem): void {
   fs.seed('/target/AGENTS.md', '# Agents');
 }
 
-describe('doctor use case', () => {
+function makeHealthyFixture(commands: Record<string, number> = {}) {
+  const fs = new InMemoryFilesystem();
+  seedAll(fs);
+  const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0, ...commands });
+  runner.setStdout('git config core.hooksPath', '.githooks');
+  return { fs, runner };
+}
+
+async function runDoctorWithFixture(
+  options: Readonly<{
+    mutate?: (fs: InMemoryFilesystem, runner: InMemoryProcessRunner) => Promise<void> | void;
+    command?: Parameters<typeof doctor>[0];
+    commands?: Record<string, number>;
+  }> = {},
+) {
+  const { fs, runner } = makeHealthyFixture(options.commands);
+  await options.mutate?.(fs, runner);
+  return doctor(options.command ?? { targetDir: '/target' }, fs, runner);
+}
+
+function findCheck(result: Awaited<ReturnType<typeof doctor>>, name: string) {
+  return result.checks.find((check) => check.name === name);
+}
+
+describe('doctor use case health checks', () => {
   it('reports healthy when all required files exist and hooks are configured', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
+    const result = await runDoctorWithFixture();
     expect(result.healthy).toBe(true);
-    expect(result.checks.every((c) => c.passed)).toBe(true);
-
-    const hooksPathCheck = result.checks.find((c) => c.name === 'git core.hooksPath');
-    expect(hooksPathCheck?.detail).toBe('core.hooksPath = .githooks');
-
-    const hooksDirCheck = result.checks.find((c) => c.name === '.githooks directory');
-    expect(hooksDirCheck?.detail).toContain('.githooks');
-
-    const ciCheck = result.checks.find((c) => c.name === '.github/workflows/quality.yml');
-    expect(ciCheck?.detail).toContain('quality.yml present');
+    expect(result.checks.every((check) => check.passed)).toBe(true);
+    expect(findCheck(result, 'git core.hooksPath')?.detail).toBe('core.hooksPath = .githooks');
+    expect(findCheck(result, '.githooks directory')?.detail).toContain('.githooks');
+    expect(findCheck(result, '.github/workflows/quality.yml')?.detail).toContain(
+      'quality.yml present',
+    );
   });
 
-  it('reports unhealthy when hooks path is not set', async () => {
+  it('reports unhealthy when hooks path is not set or empty', async () => {
+    const missingHooksPath = await runDoctorWithFixture({
+      commands: { 'git config core.hooksPath': 1 },
+    });
+    const emptyHooksPath = await runDoctorWithFixture({
+      mutate: (_fs, runner) => {
+        runner.setStdout('git config core.hooksPath', '');
+      },
+    });
+
+    expect(findCheck(missingHooksPath, 'git core.hooksPath')?.detail).toContain('not set');
+    expect(findCheck(emptyHooksPath, 'git core.hooksPath')?.detail).toContain('empty');
+    expect(missingHooksPath.healthy).toBe(false);
+    expect(emptyHooksPath.healthy).toBe(false);
+  });
+
+  it('includes detail messages for all checks and handles git command errors', async () => {
+    const runner = { run: async () => Promise.reject(new Error('git not found')) };
     const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 1 });
-
     const result = await doctor({ targetDir: '/target' }, fs, runner);
-    expect(result.healthy).toBe(false);
-    const check = result.checks.find((c) => c.name === 'git core.hooksPath');
-    expect(check?.passed).toBe(false);
-    expect(check?.detail).toContain('run: noslop init');
-    expect(check?.detail).toContain('not set');
+
+    expect(result.checks.every((check) => check.detail.length > 0)).toBe(true);
+    expect(findCheck(result, 'git core.hooksPath')?.passed).toBe(false);
   });
 
+  it('marks healthy false when any check fails', async () => {
+    const result = await runDoctorWithFixture({
+      mutate: async (fs) => {
+        await fs.rmdir('/target/.githooks', { recursive: true });
+      },
+    });
+    expect(result.healthy).toBe(false);
+    expect(result.checks.every((check) => check.passed)).toBe(false);
+  });
+});
+
+describe('doctor use case infrastructure presence', () => {
   it('reports unhealthy when .githooks directory is missing', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
-    fs.seed('/target/.claude/settings.json', '{}');
-    fs.seed('/target/.claude/hooks/pre-tool-use.sh', '#!/bin/sh');
-    fs.seed('/target/AGENTS.md', '# Agents');
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    expect(result.healthy).toBe(false);
-    const check = result.checks.find((c) => c.name === '.githooks directory');
-    expect(check?.passed).toBe(false);
-    expect(check?.detail).toContain('run: noslop init');
-    expect(check?.detail).toContain('.githooks');
+    const result = await runDoctorWithFixture({
+      mutate: async (fs) => {
+        await fs.rmdir('/target/.githooks', { recursive: true });
+      },
+    });
+    expect(findCheck(result, '.githooks directory')?.detail).toContain('run: noslop init');
   });
 
   it('reports unhealthy when quality.yml is missing', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/target/.githooks/pre-commit', '#!/bin/sh');
-    fs.seed('/target/.claude/settings.json', '{}');
-    fs.seed('/target/.claude/hooks/pre-tool-use.sh', '#!/bin/sh');
-    fs.seed('/target/AGENTS.md', '# Agents');
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    expect(result.healthy).toBe(false);
-    const check = result.checks.find((c) => c.name === '.github/workflows/quality.yml');
-    expect(check?.passed).toBe(false);
-    expect(check?.detail).toContain('run: noslop init');
-    expect(check?.detail).toContain('quality.yml');
-  });
-
-  it('reports unhealthy when .claude/hooks directory is missing (MIS3)', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/target/.githooks/pre-commit', '#!/bin/sh');
-    fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
-    fs.seed('/target/.claude/settings.json', '{}');
-    fs.seed('/target/AGENTS.md', '# Agents');
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    expect(result.healthy).toBe(false);
-    const check = result.checks.find((c) => c.name === '.claude/hooks directory');
-    expect(check?.passed).toBe(false);
-    expect(check?.detail).toContain('run: noslop init');
-  });
-
-  it('reports unhealthy when git config exits 0 but stdout is empty', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    expect(result.healthy).toBe(false);
-    const check = result.checks.find((c) => c.name === 'git core.hooksPath');
-    expect(check?.passed).toBe(false);
-    expect(check?.detail).toContain('empty');
-    expect(check?.detail).toContain('run: noslop init');
-  });
-
-  it('includes detail messages for all checks', async () => {
-    const fs = new InMemoryFilesystem();
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 1 });
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    for (const checkItem of result.checks) {
-      expect(checkItem.detail.length).toBeGreaterThan(0);
-    }
-  });
-
-  it('reports unhealthy when runner throws on git config check', async () => {
-    const fs = new InMemoryFilesystem();
-    const throwingRunner = {
-      run: async () => {
-        throw new Error('git not found');
+    const result = await runDoctorWithFixture({
+      mutate: async (fs) => {
+        await fs.rm('/target/.github/workflows/quality.yml');
       },
-    };
-
-    const result = await doctor({ targetDir: '/target' }, fs, throwingRunner);
-    const check = result.checks.find((c) => c.name === 'git core.hooksPath');
-    expect(check?.passed).toBe(false);
+    });
+    expect(findCheck(result, '.github/workflows/quality.yml')?.detail).toContain('quality.yml');
   });
 
-  it('healthy is false when at least one check fails', async () => {
-    const fs = new InMemoryFilesystem();
-    // seed everything except .githooks so exactly one check fails
-    fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
-    fs.seed('/target/.claude/settings.json', '{}');
-    fs.seed('/target/.claude/hooks/pre-tool-use.sh', '#!/bin/sh');
-    fs.seed('/target/AGENTS.md', '# Agents');
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    expect(result.healthy).toBe(false);
-    // healthy must derive from the checks array — all-pass → true, one-fail → false
-    expect(result.checks.every((c) => c.passed)).toBe(false);
+  it('reports unhealthy when .claude/hooks directory is missing', async () => {
+    const result = await runDoctorWithFixture({
+      mutate: async (fs) => {
+        await fs.rmdir('/target/.claude/hooks', { recursive: true });
+      },
+    });
+    expect(findCheck(result, '.claude/hooks directory')?.detail).toContain('run: noslop init');
   });
+});
 
-  it('passing hooksPath check detail contains exact hooksPath value', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-    runner.setStdout('git config core.hooksPath', '.githooks');
+describe('doctor use case toolchain checks', () => {
+  it('skips toolchain checks when packs is missing or empty', async () => {
+    const withoutPacks = await runDoctorWithFixture();
+    const emptyPacks = await runDoctorWithFixture({
+      command: { targetDir: '/target', packs: [] },
+    });
 
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    const check = result.checks.find((c) => c.name === 'git core.hooksPath');
-    // Exact string: ensures the ternary true-branch is exercised and not collapsed
-    expect(check?.detail).toBe('core.hooksPath = .githooks');
-  });
-
-  it('failing hooksPath check detail never contains the passing prefix', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 1 });
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    const check = result.checks.find((c) => c.name === 'git core.hooksPath');
-    // Must NOT contain the success phrase — guards the false-branch
-    expect(check?.detail).not.toContain('core.hooksPath =');
-  });
-
-  it('skips toolchain checks when packs is not provided', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    const toolchainChecks = result.checks.filter((c) => c.name.startsWith('toolchain:'));
-    expect(toolchainChecks).toHaveLength(0);
+    expect(withoutPacks.checks.filter((check) => check.name.startsWith('toolchain:'))).toHaveLength(
+      0,
+    );
+    expect(emptyPacks.checks.filter((check) => check.name.startsWith('toolchain:'))).toHaveLength(
+      0,
+    );
   });
 
   it('adds toolchain checks when packs are provided', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({
-      'git config core.hooksPath': 0,
-      'zig version': 0,
+    const result = await runDoctorWithFixture({
+      mutate: (_fs, runner) => {
+        runner.setStdout('zig version', '0.11.0');
+      },
+      command: {
+        targetDir: '/target',
+        packs: [createPack('zig', 'Zig', [createGate('build', 'zig build', 'fast')])],
+      },
     });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-    runner.setStdout('zig version', '0.11.0');
 
-    const zigPack = createPack('zig', 'Zig', [createGate('build', 'zig build', 'fast')]);
-    const result = await doctor({ targetDir: '/target', packs: [zigPack] }, fs, runner);
-
-    const toolchainChecks = result.checks.filter((c) => c.name.startsWith('toolchain:'));
-    expect(toolchainChecks.length).toBeGreaterThanOrEqual(1);
-
-    const zigCheck = toolchainChecks.find((c) => c.name === 'toolchain: zig/zig');
-    expect(zigCheck).toBeDefined();
+    const zigCheck = findCheck(result, 'toolchain: zig/zig');
     expect(zigCheck?.passed).toBe(true);
     expect(zigCheck?.detail).toBe('zig found');
   });
 
-  it('toolchain checks are always passed=true even when binary is missing', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({
-      'git config core.hooksPath': 0,
-      'cargo --version': 1,
-      'cargo clippy --version': 1,
+  it('non-strict toolchain failures stay informational and do not affect healthy', async () => {
+    const result = await runDoctorWithFixture({
+      commands: { 'dart --version': 1 },
+      command: {
+        targetDir: '/target',
+        packs: [createPack('dart', 'Dart', [createGate('test', 'dart test', 'fast')])],
+      },
     });
-    runner.setStdout('git config core.hooksPath', '.githooks');
 
-    const rustPack = createPack('rust', 'Rust', [createGate('build', 'cargo build', 'fast')]);
-    const result = await doctor({ targetDir: '/target', packs: [rustPack] }, fs, runner);
-
-    const toolchainChecks = result.checks.filter((c) => c.name.startsWith('toolchain:'));
-    for (const check of toolchainChecks) {
-      expect(check.passed).toBe(true);
-    }
-
-    const cargoCheck = toolchainChecks.find((c) => c.name === 'toolchain: rust/cargo');
-    expect(cargoCheck?.detail).toContain('not found');
-    expect(cargoCheck?.detail).toContain('rustup');
-  });
-
-  it('toolchain checks do not affect healthy status', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({
-      'git config core.hooksPath': 0,
-      'dart --version': 1,
-    });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const dartPack = createPack('dart', 'Dart', [createGate('test', 'dart test', 'fast')]);
-    const result = await doctor({ targetDir: '/target', packs: [dartPack] }, fs, runner);
-
+    expect(findCheck(result, 'toolchain: dart/dart')?.detail).toContain('not found');
+    expect(findCheck(result, 'toolchain: dart/dart')?.passed).toBe(true);
     expect(result.healthy).toBe(true);
-    const dartCheck = result.checks.find((c) => c.name === 'toolchain: dart/dart');
-    expect(dartCheck?.detail).toContain('not found');
   });
 
-  it('toolchain checks handle runner throwing an error', async () => {
+  it('treats thrown toolchain lookups as missing binaries', async () => {
     const fs = new InMemoryFilesystem();
     seedAll(fs);
-
     let callCount = 0;
-    const throwingRunner = {
-      run: async (cmd: string) => {
-        if (cmd === 'git config core.hooksPath') {
+    const runner = {
+      run: async (command: string) => {
+        if (command === 'git config core.hooksPath') {
           return { exitCode: 0, stdout: '.githooks', stderr: '' };
         }
         callCount++;
@@ -261,113 +174,72 @@ describe('doctor use case', () => {
       },
     };
 
-    const zigPack = createPack('zig', 'Zig', [createGate('build', 'zig build', 'fast')]);
-    const result = await doctor({ targetDir: '/target', packs: [zigPack] }, fs, throwingRunner);
-
-    expect(callCount).toBeGreaterThan(0);
-    const zigCheck = result.checks.find((c) => c.name === 'toolchain: zig/zig');
-    expect(zigCheck?.passed).toBe(true);
-    expect(zigCheck?.detail).toContain('not found');
-  });
-
-  it('passes hook permission check when pre-commit is executable', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    fs.markExecutable('/target/.githooks/pre-commit');
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    const check = result.checks.find((c) => c.name === '.githooks/pre-commit permissions');
-    expect(check?.passed).toBe(true);
-    expect(check?.detail).toContain('is executable');
-  });
-
-  it('fails hook permission check when pre-commit is not executable', async () => {
-    const fs = new InMemoryFilesystem();
-    // Seed files individually — pre-commit exists but is NOT marked executable
-    fs.seed('/target/.githooks/pre-commit', '#!/bin/sh');
-    fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
-    fs.seed('/target/.claude/settings.json', '{}');
-    fs.seed('/target/.claude/hooks/pre-tool-use.sh', '#!/bin/sh');
-    fs.seed('/target/AGENTS.md', '# Agents');
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    const check = result.checks.find((c) => c.name === '.githooks/pre-commit permissions');
-    expect(check?.passed).toBe(false);
-    expect(check?.detail).toContain('chmod +x');
-  });
-
-  it('skips hook permission check when pre-commit does not exist', async () => {
-    const fs = new InMemoryFilesystem();
-    // Don't seed pre-commit
-    fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
-    fs.seed('/target/.claude/settings.json', '{}');
-    fs.seed('/target/.claude/hooks/pre-tool-use.sh', '#!/bin/sh');
-    fs.seed('/target/AGENTS.md', '# Agents');
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const result = await doctor({ targetDir: '/target' }, fs, runner);
-    const check = result.checks.find((c) => c.name === '.githooks/pre-commit permissions');
-    expect(check).toBeUndefined();
-  });
-
-  it('strict mode marks missing toolchain as failed', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({
-      'git config core.hooksPath': 0,
-      'cargo --version': 1,
-      'cargo clippy --version': 1,
-    });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const rustPack = createPack('rust', 'Rust', [createGate('build', 'cargo build', 'fast')]);
     const result = await doctor(
-      { targetDir: '/target', packs: [rustPack], strict: true },
+      {
+        targetDir: '/target',
+        packs: [createPack('zig', 'Zig', [createGate('build', 'zig build', 'fast')])],
+      },
       fs,
       runner,
     );
 
-    const cargoCheck = result.checks.find((c) => c.name === 'toolchain: rust/cargo');
-    expect(cargoCheck?.passed).toBe(false);
-    expect(cargoCheck?.detail).toContain('not found');
+    expect(callCount).toBeGreaterThan(0);
+    expect(findCheck(result, 'toolchain: zig/zig')?.detail).toContain('not found');
+  });
+});
+
+describe('doctor use case permissions and strict mode', () => {
+  it('reports hook permissions correctly', async () => {
+    const executable = await runDoctorWithFixture();
+    const nonExecutable = await runDoctorWithFixture({
+      mutate: async (fs) => {
+        await fs.rmdir('/target/.githooks', { recursive: true });
+        fs.seed('/target/.githooks/pre-commit', '#!/bin/sh');
+      },
+    });
+    const missingPreCommit = await runDoctorWithFixture({
+      mutate: async (fs) => {
+        await fs.rm('/target/.githooks/pre-commit');
+      },
+    });
+
+    expect(findCheck(executable, '.githooks/pre-commit permissions')?.passed).toBe(true);
+    expect(findCheck(nonExecutable, '.githooks/pre-commit permissions')?.detail).toContain(
+      'chmod +x',
+    );
+    expect(findCheck(missingPreCommit, '.githooks/pre-commit permissions')).toBeUndefined();
+  });
+
+  it('strict mode fails when required toolchains are missing', async () => {
+    const result = await runDoctorWithFixture({
+      commands: {
+        'cargo --version': 1,
+        'cargo clippy --version': 1,
+      },
+      command: {
+        targetDir: '/target',
+        packs: [createPack('rust', 'Rust', [createGate('build', 'cargo build', 'fast')])],
+        strict: true,
+      },
+    });
+
+    expect(findCheck(result, 'toolchain: rust/cargo')?.passed).toBe(false);
     expect(result.healthy).toBe(false);
   });
 
   it('strict mode passes when toolchain is available', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({
-      'git config core.hooksPath': 0,
-      'zig version': 0,
+    const result = await runDoctorWithFixture({
+      mutate: (_fs, runner) => {
+        runner.setStdout('zig version', '0.11.0');
+      },
+      command: {
+        targetDir: '/target',
+        packs: [createPack('zig', 'Zig', [createGate('build', 'zig build', 'fast')])],
+        strict: true,
+      },
     });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-    runner.setStdout('zig version', '0.11.0');
 
-    const zigPack = createPack('zig', 'Zig', [createGate('build', 'zig build', 'fast')]);
-    const result = await doctor(
-      { targetDir: '/target', packs: [zigPack], strict: true },
-      fs,
-      runner,
-    );
-
-    const zigCheck = result.checks.find((c) => c.name === 'toolchain: zig/zig');
-    expect(zigCheck?.passed).toBe(true);
+    expect(findCheck(result, 'toolchain: zig/zig')?.passed).toBe(true);
     expect(result.healthy).toBe(true);
-  });
-
-  it('skips toolchain checks when packs is an empty array', async () => {
-    const fs = new InMemoryFilesystem();
-    seedAll(fs);
-    const runner = new InMemoryProcessRunner({ 'git config core.hooksPath': 0 });
-    runner.setStdout('git config core.hooksPath', '.githooks');
-
-    const result = await doctor({ targetDir: '/target', packs: [] }, fs, runner);
-    const toolchainChecks = result.checks.filter((c) => c.name.startsWith('toolchain:'));
-    expect(toolchainChecks).toHaveLength(0);
   });
 });

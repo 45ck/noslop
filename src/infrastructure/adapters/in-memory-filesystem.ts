@@ -87,15 +87,17 @@ export class InMemoryFilesystem implements IFilesystem {
   async rmdir(path: string, options?: { recursive?: boolean }): Promise<void> {
     if (options?.recursive) {
       const prefix = path.endsWith('/') ? path : `${path}/`;
-      for (const key of [...this.files.keys()]) {
-        if (key.startsWith(prefix)) this.files.delete(key);
-      }
-      for (const key of [...this.dirs]) {
-        if (key === path || key.startsWith(prefix)) this.dirs.delete(key);
-      }
-      for (const key of [...this.executablePaths]) {
-        if (key.startsWith(prefix)) this.executablePaths.delete(key);
-      }
+      this.deleteMatchingEntries([...this.files.keys()], this.files, (key) =>
+        key.startsWith(prefix),
+      );
+      this.deleteMatchingEntries(
+        [...this.dirs],
+        this.dirs,
+        (key) => key === path || key.startsWith(prefix),
+      );
+      this.deleteMatchingEntries([...this.executablePaths], this.executablePaths, (key) =>
+        key.startsWith(prefix),
+      );
     } else {
       this.dirs.delete(path);
     }
@@ -110,6 +112,18 @@ export class InMemoryFilesystem implements IFilesystem {
     const parts = path.split('/');
     for (let i = 1; i < parts.length - 1; i++) {
       this.dirs.add(parts.slice(0, i + 1).join('/'));
+    }
+  }
+
+  private deleteMatchingEntries(
+    keys: readonly string[],
+    entries: Set<string> | Map<string, string>,
+    predicate: (key: string) => boolean,
+  ): void {
+    for (const key of keys) {
+      if (predicate(key)) {
+        entries.delete(key);
+      }
     }
   }
 }

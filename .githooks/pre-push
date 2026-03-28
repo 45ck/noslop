@@ -2,7 +2,11 @@
 # noslop pre-push: slow gates (typecheck, tests)
 set -e
 
-if command -v noslop >/dev/null 2>&1; then
+if [ -x "./node_modules/.bin/noslop" ]; then
+  ./node_modules/.bin/noslop check --tier=slow
+elif [ -f "./dist/presentation/cli.js" ]; then
+  node ./dist/presentation/cli.js check --tier=slow
+elif command -v noslop >/dev/null 2>&1; then
   noslop check --tier=slow
 else
   npm run typecheck && npm run test

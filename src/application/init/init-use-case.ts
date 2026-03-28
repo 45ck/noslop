@@ -17,6 +17,27 @@ export type InitResult = Readonly<{
   hooksConfigured: boolean;
 }>;
 
+type WriteSpellConfigContext = Readonly<{
+  targetDir: string;
+  spell: SpellConfig;
+  fs: IFilesystem;
+  resolver: IConflictResolver;
+}>;
+
+type CopyTemplateContext = Readonly<{
+  targetDir: string;
+  normalizedTarget: string;
+  fs: IFilesystem;
+  resolver: IConflictResolver;
+}>;
+
+type CopyTemplatePaths = Readonly<{
+  srcPath: string;
+  relPath: string;
+  destPath: string;
+  normalizedDestPath: string;
+}>;
+
 function toForwardSlash(p: string): string {
   return p.replaceAll('\\', '/');
 }
@@ -77,21 +98,19 @@ function spellConfigFileName(pack: Pack): string | null {
 
 async function writeSpellConfigForPack(
   fileName: string,
-  targetDir: string,
-  spell: SpellConfig,
-  fs: IFilesystem,
-  resolver: IConflictResolver,
+  context: WriteSpellConfigContext,
 ): Promise<string | null> {
-  const filePath = `${targetDir}/${fileName}`;
-  const content = fileName === 'cspell.json' ? buildCspellJson(spell) : buildTyposToml(spell);
+  const filePath = `${context.targetDir}/${fileName}`;
+  const content =
+    fileName === 'cspell.json' ? buildCspellJson(context.spell) : buildTyposToml(context.spell);
 
-  if (await fs.exists(filePath)) {
-    const resolution = await resolver.resolve(filePath);
+  if (await context.fs.exists(filePath)) {
+    const resolution = await context.resolver.resolve(filePath);
     if (resolution === 'skip') return null;
   }
 
-  await fs.writeFile(filePath, content);
-  await fs.chmod(filePath, 0o644);
+  await context.fs.writeFile(filePath, content);
+  await context.fs.chmod(filePath, 0o644);
   return filePath;
 }
 
@@ -102,13 +121,19 @@ export async function init(
   resolver: IConflictResolver,
 ): Promise<InitResult> {
   const filesWritten: string[] = [];
+  const copyContext: CopyTemplateContext = {
+    targetDir: command.targetDir,
+    normalizedTarget: toForwardSlash(command.targetDir),
+    fs,
+    resolver,
+  };
 
   for (const pack of command.packs) {
     const packTemplateDir = `${command.templatesDir}/packs/${pack.id}`;
     const exists = await fs.exists(packTemplateDir);
     if (!exists) continue;
 
-    const written = await copyTemplateDir(packTemplateDir, command.targetDir, '', fs, resolver);
+    const written = await copyTemplateDir(packTemplateDir, '', copyContext);
     filesWritten.push(...written);
   }
 
@@ -118,13 +143,12 @@ export async function init(
       const fileName = spellConfigFileName(pack);
       if (!fileName || handledSpellFiles.has(fileName)) continue;
       handledSpellFiles.add(fileName);
-      const written = await writeSpellConfigForPack(
-        fileName,
-        command.targetDir,
-        command.config.spell,
+      const written = await writeSpellConfigForPack(fileName, {
+        targetDir: command.targetDir,
+        spell: command.config.spell,
         fs,
         resolver,
-      );
+      });
       if (written) filesWritten.push(written);
     }
   }
@@ -147,51 +171,80 @@ export async function init(
 
 async function copyTemplateDir(
   templateDir: string,
-  targetDir: string,
   relativePrefix: string,
-  fs: IFilesystem,
-  resolver: IConflictResolver,
+  context: CopyTemplateContext,
 ): Promise<string[]> {
   const written: string[] = [];
-  const entries = await fs.readdir(templateDir);
-  const normalizedTarget = toForwardSlash(targetDir);
+  const entries = await context.fs.readdir(templateDir);
 
   for (const entry of entries) {
-    const srcPath = `${templateDir}/${entry}`;
-    const relPath = relativePrefix ? `${relativePrefix}/${entry}` : entry;
-
-    if (toForwardSlash(relPath).includes('..')) continue;
-
-    const destPath = `${targetDir}/${relPath}`;
-
-    if (!toForwardSlash(destPath).startsWith(normalizedTarget)) continue;
-
-    const isDir = await fs.isDirectory(srcPath);
-    if (isDir) {
-      await fs.mkdir(destPath, { recursive: true });
-      const subWritten = await copyTemplateDir(srcPath, targetDir, relPath, fs, resolver);
-      written.push(...subWritten);
-    } else {
-      const normalized = toForwardSlash(destPath);
-      const lastSlash = normalized.lastIndexOf('/');
-      if (lastSlash > 0) {
-        await fs.mkdir(destPath.slice(0, lastSlash), { recursive: true });
-      }
-
-      if (!isGateInfrastructure(destPath) && (await fs.exists(destPath))) {
-        const resolution = await resolver.resolve(destPath);
-        if (resolution === 'skip') continue;
-      }
-
-      await fs.copyFile(srcPath, destPath);
-      const isExecutable =
-        normalized.includes('/.githooks/') ||
-        normalized.includes('/scripts/') ||
-        normalized.includes('/.claude/hooks/');
-      await fs.chmod(destPath, isExecutable ? 0o755 : 0o644);
-      written.push(destPath);
-    }
+    const copied = await copyTemplateEntry(templateDir, relativePrefix, entry, context);
+    written.push(...copied);
   }
 
   return written;
+}
+
+async function copyTemplateEntry(
+  templateDir: string,
+  relativePrefix: string,
+  entry: string,
+  context: CopyTemplateContext,
+): Promise<string[]> {
+  const paths = createCopyTemplatePaths(templateDir, relativePrefix, entry, context.targetDir);
+  if (toForwardSlash(paths.relPath).includes('..')) return [];
+  if (!paths.normalizedDestPath.startsWith(context.normalizedTarget)) return [];
+
+  if (await context.fs.isDirectory(paths.srcPath)) {
+    await context.fs.mkdir(paths.destPath, { recursive: true });
+    return copyTemplateDir(paths.srcPath, paths.relPath, context);
+  }
+
+  await ensureDestinationParent(paths.destPath, context.fs);
+  if (await shouldSkipExistingFile(paths.destPath, context)) return [];
+
+  await context.fs.copyFile(paths.srcPath, paths.destPath);
+  await context.fs.chmod(paths.destPath, getFileMode(paths.normalizedDestPath));
+  return [paths.destPath];
+}
+
+function createCopyTemplatePaths(
+  templateDir: string,
+  relativePrefix: string,
+  entry: string,
+  targetDir: string,
+): CopyTemplatePaths {
+  const relPath = relativePrefix ? `${relativePrefix}/${entry}` : entry;
+  const destPath = `${targetDir}/${relPath}`;
+  return {
+    srcPath: `${templateDir}/${entry}`,
+    relPath,
+    destPath,
+    normalizedDestPath: toForwardSlash(destPath),
+  };
+}
+
+async function ensureDestinationParent(destPath: string, fs: IFilesystem): Promise<void> {
+  const normalized = toForwardSlash(destPath);
+  const lastSlash = normalized.lastIndexOf('/');
+  if (lastSlash > 0) {
+    await fs.mkdir(destPath.slice(0, lastSlash), { recursive: true });
+  }
+}
+
+async function shouldSkipExistingFile(
+  destPath: string,
+  context: CopyTemplateContext,
+): Promise<boolean> {
+  if (isGateInfrastructure(destPath)) return false;
+  if (!(await context.fs.exists(destPath))) return false;
+  return (await context.resolver.resolve(destPath)) === 'skip';
+}
+
+function getFileMode(normalizedDestPath: string): number {
+  const isExecutable =
+    normalizedDestPath.includes('/.githooks/') ||
+    normalizedDestPath.includes('/scripts/') ||
+    normalizedDestPath.includes('/.claude/hooks/');
+  return isExecutable ? 0o755 : 0o644;
 }

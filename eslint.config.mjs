@@ -125,14 +125,11 @@ export default tseslint.config(
     },
   },
 
-  // Tests can be longer/more verbose; keep production caps strict.
-  // Mock port implementations idiomatically use async without await, unbound method
-  // references (expect(obj.method)), and type-unsafe mocks — all standard Vitest patterns.
+  // Tests still obey the core noslop caps. Keep only the Vitest-specific relaxations
+  // that are not part of the baseline TypeScript pack.
   {
     files: ['**/*.test.ts'],
     rules: {
-      'max-lines': 'off',
-      'max-lines-per-function': 'off',
       '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
@@ -147,51 +144,23 @@ export default tseslint.config(
     },
   },
 
-  // Scripts are production-critical, but allow more complexity and length than core code.
-  {
-    files: ['scripts/**/*.mjs'],
-    rules: {
-      complexity: 'off',
-      'max-depth': 'off',
-      'max-lines-per-function': 'off',
-      'max-lines': 'off',
-      'max-params': 'off',
-      'sonarjs/cognitive-complexity': 'off',
-    },
-  },
-
-  // In-memory adapter implementations are test doubles for external services.
-  // They route many operations through a single switch and legitimately need
-  // higher complexity/size budgets. require-await is off because they fulfil
-  // async port contracts without real I/O.
+  // Adapter-specific async/test-double patterns are acceptable, but the core
+  // noslop size and complexity caps still apply.
   {
     files: ['src/infrastructure/adapters/**/in-memory-*.ts'],
     rules: {
-      complexity: 'off',
-      'max-depth': 'off',
-      'max-lines-per-function': 'off',
-      'max-lines': 'off',
-      'max-params': 'off',
-      'sonarjs/cognitive-complexity': 'off',
       '@typescript-eslint/require-await': 'off',
     },
   },
 
-  // Real adapter implementations talk to external services.
-  // They dispatch across many operations and legitimately need higher
-  // complexity/size budgets.
+  // Real adapter implementations talk to external services, so keep the
+  // interop-focused relaxations only. Core noslop caps still apply.
   {
     files: [
       'src/infrastructure/adapters/**/*.ts',
       '!src/infrastructure/adapters/**/in-memory-*.ts',
     ],
     rules: {
-      complexity: 'off',
-      'max-depth': 'off',
-      'max-lines-per-function': 'off',
-      'max-lines': 'off',
-      'max-params': 'off',
-      'sonarjs/cognitive-complexity': 'off',
       '@typescript-eslint/no-base-to-string': 'off',
       '@typescript-eslint/restrict-template-expressions': 'off',
       '@typescript-eslint/require-await': 'off',
@@ -200,7 +169,6 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/consistent-type-imports': 'off',
       '@typescript-eslint/no-redundant-type-constituents': 'off',
     },

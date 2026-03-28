@@ -215,7 +215,11 @@ done << STAGED_T2B
 $STAGED_FILES
 STAGED_T2B
 
-if command -v noslop >/dev/null 2>&1; then
+if [ -x "./node_modules/.bin/noslop" ]; then
+  ./node_modules/.bin/noslop check --tier=fast
+elif [ -f "./dist/presentation/cli.js" ]; then
+  node ./dist/presentation/cli.js check --tier=fast
+elif command -v noslop >/dev/null 2>&1; then
   noslop check --tier=fast
 else
   npm run format:check && npm run lint && npm run spell

@@ -14,7 +14,11 @@ function makeCommand(overrides: Partial<CheckCommand> = {}): CheckCommand {
   };
 }
 
-describe('check use case', () => {
+function makePack(gates: Parameters<typeof createPack>[2]) {
+  return createPack('ts', 'TS', gates);
+}
+
+describe('check use case basics', () => {
   it('passes with no packs', async () => {
     const runner = new InMemoryProcessRunner();
     const result = await check(makeCommand(), runner);
@@ -23,7 +27,7 @@ describe('check use case', () => {
   });
 
   it('runs gates matching the requested tier', async () => {
-    const pack = createPack('ts', 'TS', [
+    const pack = makePack([
       createGate('lint', 'eslint .', 'fast'),
       createGate('test', 'vitest run', 'slow'),
     ]);
@@ -35,7 +39,7 @@ describe('check use case', () => {
   });
 
   it('passes when all gate exit codes are 0', async () => {
-    const pack = createPack('ts', 'TS', [
+    const pack = makePack([
       createGate('fmt', 'prettier .', 'fast'),
       createGate('lint', 'eslint .', 'fast'),
     ]);
@@ -46,7 +50,7 @@ describe('check use case', () => {
   });
 
   it('fails when any gate has non-zero exit code', async () => {
-    const pack = createPack('ts', 'TS', [
+    const pack = makePack([
       createGate('fmt', 'prettier .', 'fast'),
       createGate('lint', 'eslint .', 'fast'),
     ]);
@@ -54,22 +58,24 @@ describe('check use case', () => {
 
     const result = await check(makeCommand({ packs: [pack], tier: 'fast' }), runner);
     expect(result.passed).toBe(false);
-    expect(result.outcomes.find((o) => o.label === 'lint')?.passed).toBe(false);
-    expect(result.outcomes.find((o) => o.label === 'fmt')?.passed).toBe(true);
+    expect(result.outcomes.find((outcome) => outcome.label === 'lint')?.passed).toBe(false);
+    expect(result.outcomes.find((outcome) => outcome.label === 'fmt')?.passed).toBe(true);
   });
 
   it('runs gates from multiple packs', async () => {
-    const ts = createPack('ts', 'TS', [createGate('lint', 'eslint .', 'fast')]);
-    const rust = createPack('rust', 'Rust', [createGate('clippy', 'cargo clippy', 'fast')]);
+    const tsPack = makePack([createGate('lint', 'eslint .', 'fast')]);
+    const rustPack = createPack('rust', 'Rust', [createGate('clippy', 'cargo clippy', 'fast')]);
     const runner = new InMemoryProcessRunner({ 'eslint .': 0, 'cargo clippy': 0 });
 
-    const result = await check(makeCommand({ packs: [ts, rust], tier: 'fast' }), runner);
+    const result = await check(makeCommand({ packs: [tsPack, rustPack], tier: 'fast' }), runner);
     expect(result.outcomes).toHaveLength(2);
     expect(result.passed).toBe(true);
   });
+});
 
+describe('check use case result details', () => {
   it('returns outcomes with command and result info', async () => {
-    const pack = createPack('ts', 'TS', [createGate('lint', 'eslint .', 'fast')]);
+    const pack = makePack([createGate('lint', 'eslint .', 'fast')]);
     const runner = new InMemoryProcessRunner({ 'eslint .': 0 });
 
     const result = await check(makeCommand({ packs: [pack], tier: 'fast' }), runner);
@@ -78,26 +84,8 @@ describe('check use case', () => {
     expect(outcome?.result.exitCode).toBe(0);
   });
 
-  it('records failure with stderr when runner throws (M6)', async () => {
-    const pack = createPack('ts', 'TS', [createGate('lint', 'eslint .', 'fast')]);
-    const throwingRunner = {
-      run: async () => {
-        throw new Error('spawn ENOENT');
-      },
-    };
-
-    const result = await check(makeCommand({ packs: [pack], tier: 'fast' }), throwingRunner);
-    expect(result.passed).toBe(false);
-    expect(result.outcomes[0]?.result.exitCode).toBe(1);
-    // stderr must be exactly the Error message — no "Error: " prefix — killing the
-    // `err instanceof Error` branch mutant (if branch were removed, String(err) would
-    // produce "Error: spawn ENOENT" which does NOT equal the bare message).
-    expect(result.outcomes[0]?.result.stderr).toBe('spawn ENOENT');
-    expect(result.outcomes[0]?.result.stderr).not.toContain('Error:');
-  });
-
   it('calls onGateStart listener before each gate', async () => {
-    const pack = createPack('ts', 'TS', [
+    const pack = makePack([
       createGate('fmt', 'prettier .', 'fast'),
       createGate('lint', 'eslint .', 'fast'),
     ]);
@@ -110,45 +98,61 @@ describe('check use case', () => {
   });
 
   it('passes timeoutMs to runner when configured', async () => {
-    const pack = createPack('ts', 'TS', [createGate('lint', 'eslint .', 'fast')]);
+    const pack = makePack([createGate('lint', 'eslint .', 'fast')]);
     const capturedOptions: ({ timeoutMs?: number } | undefined)[] = [];
-    const capturingRunner = {
+    const runner = {
       run: async (_cmd: string, _cwd?: string, options?: { timeoutMs?: number }) => {
         capturedOptions.push(options);
         return { exitCode: 0, stdout: '', stderr: '' };
       },
     };
 
-    await check(makeCommand({ packs: [pack], tier: 'fast', timeoutMs: 600000 }), capturingRunner);
+    await check(makeCommand({ packs: [pack], tier: 'fast', timeoutMs: 600000 }), runner);
     expect(capturedOptions[0]?.timeoutMs).toBe(600000);
   });
 
   it('does not pass options when timeoutMs is undefined', async () => {
-    const pack = createPack('ts', 'TS', [createGate('lint', 'eslint .', 'fast')]);
+    const pack = makePack([createGate('lint', 'eslint .', 'fast')]);
     const capturedOptions: ({ timeoutMs?: number } | undefined)[] = [];
-    const capturingRunner = {
+    const runner = {
       run: async (_cmd: string, _cwd?: string, options?: { timeoutMs?: number }) => {
         capturedOptions.push(options);
         return { exitCode: 0, stdout: '', stderr: '' };
       },
     };
 
-    await check(makeCommand({ packs: [pack], tier: 'fast' }), capturingRunner);
+    await check(makeCommand({ packs: [pack], tier: 'fast' }), runner);
     expect(capturedOptions[0]).toBeUndefined();
+  });
+});
+
+describe('check use case runner failures', () => {
+  it('records failure with stderr when runner throws an Error', async () => {
+    const pack = makePack([createGate('lint', 'eslint .', 'fast')]);
+    const runner = {
+      run: async () => {
+        throw new Error('spawn ENOENT');
+      },
+    };
+
+    const result = await check(makeCommand({ packs: [pack], tier: 'fast' }), runner);
+    expect(result.passed).toBe(false);
+    expect(result.outcomes[0]?.result.exitCode).toBe(1);
+    expect(result.outcomes[0]?.result.stderr).toBe('spawn ENOENT');
+    expect(result.outcomes[0]?.result.stderr).not.toContain('Error:');
   });
 
   it('records failure with stderr when runner throws a non-Error value', async () => {
-    const pack = createPack('ts', 'TS', [createGate('lint', 'eslint .', 'fast')]);
-    const throwingRunner = {
+    const pack = makePack([createGate('lint', 'eslint .', 'fast')]);
+    const runner = {
       run: async () => {
         throw 'plain string error';
       },
     };
 
-    const result = await check(makeCommand({ packs: [pack], tier: 'fast' }), throwingRunner);
+    const result = await check(makeCommand({ packs: [pack], tier: 'fast' }), runner);
     expect(result.passed).toBe(false);
     expect(result.outcomes[0]?.result.exitCode).toBe(1);
-    // When thrown value is not an Error, String(value) is used directly
     expect(result.outcomes[0]?.result.stderr).toBe('plain string error');
   });
 });

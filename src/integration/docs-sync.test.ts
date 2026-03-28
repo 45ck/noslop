@@ -23,43 +23,46 @@ interface DocRow {
  * Handles markdown-escaped pipes (\|) in command cells.
  */
 function parseGateTiersTable(markdown: string): DocRow[] {
-  const PIPE_PLACEHOLDER = '\x00';
-  const lines = markdown.split('\n');
-  let inSection = false;
   const rows: DocRow[] = [];
-
-  for (const line of lines) {
-    if (line.startsWith('## Gate tiers')) {
-      inSection = true;
-      continue;
-    }
-    if (inSection && line.startsWith('## ')) break;
-    if (!inSection) continue;
-
-    // Replace escaped pipes before splitting so they don't become column delimiters
-    const safeLine = line.replace(/\\\|/g, PIPE_PLACEHOLDER);
-    const cols = safeLine.split('|').map((s) => s.trim());
-    // Expect: ['', tier, trigger, commandCell, '']
-    if (cols.length < 4) continue;
-
-    const tierCol = cols[1];
-    const commandCol = cols[3];
-    if (tierCol === undefined || commandCol === undefined) continue;
-
-    const tier = tierCol.toLowerCase();
-    if (!['fast', 'slow', 'ci'].includes(tier)) continue;
-
-    // Restore escaped pipes in the command cell, then extract the backtick-wrapped command
-    const commandCell = commandCol.replace(new RegExp(PIPE_PLACEHOLDER, 'g'), '|');
-    const backtickMatch = /^`([^`]+)`/.exec(commandCell);
-    if (!backtickMatch) continue;
-
-    const command = backtickMatch[1];
-    if (command === undefined) continue;
-    rows.push({ tier, command });
+  for (const line of extractGateTierSection(markdown)) {
+    const row = parseGateTierRow(line);
+    if (row) rows.push(row);
   }
-
   return rows;
+}
+
+function extractGateTierSection(markdown: string): string[] {
+  const lines = markdown.split('\n');
+  const startIndex = lines.findIndex((line) => line.startsWith('## Gate tiers'));
+  if (startIndex === -1) return [];
+
+  const sectionLines: string[] = [];
+  for (const line of lines.slice(startIndex + 1)) {
+    if (line.startsWith('## ')) break;
+    sectionLines.push(line);
+  }
+  return sectionLines;
+}
+
+function parseGateTierRow(line: string): DocRow | null {
+  const pipePlaceholder = '\x00';
+  const cols = line
+    .replace(/\\\|/g, pipePlaceholder)
+    .split('|')
+    .map((segment) => segment.trim());
+  if (cols.length < 4) return null;
+
+  const tier = cols[1]?.toLowerCase();
+  const commandCell = cols[3]?.replaceAll(pipePlaceholder, '|');
+  if (!tier || !commandCell || !isGateTier(tier)) return null;
+
+  const backtickMatch = /^`([^`]+)`/.exec(commandCell);
+  const command = backtickMatch?.[1];
+  return command ? { tier, command } : null;
+}
+
+function isGateTier(tier: string): tier is DocRow['tier'] {
+  return ['fast', 'slow', 'ci'].includes(tier);
 }
 
 describe('docs-sync: gate tier tables match pack source', () => {

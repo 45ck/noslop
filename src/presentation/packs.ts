@@ -42,111 +42,130 @@ export const ALL_PACKS: Pack[] = [
   OCAML_PACK,
 ];
 
+type DetectionSignals = Readonly<{
+  rootEntries: readonly string[];
+  hasTypeScript: boolean;
+  hasRust: boolean;
+  hasDotnetProject: boolean;
+  hasGlobalJson: boolean;
+  hasGo: boolean;
+  hasPython: boolean;
+  hasMaven: boolean;
+  hasGradle: boolean;
+  hasComposer: boolean;
+  hasGemfile: boolean;
+  hasSwiftPackage: boolean;
+  hasCMakeLists: boolean;
+  hasBuildSbt: boolean;
+  hasMixExs: boolean;
+  hasPubspec: boolean;
+  hasBuildZig: boolean;
+  hasDuneProject: boolean;
+}>;
+
 export async function detectPacks(targetDir: string, fs: IFilesystem): Promise<Pack[]> {
   const detected: Pack[] = [];
-
-  // TypeScript detection triggers only on tsconfig.json to avoid false positives
-  // in non-TypeScript projects (e.g., PHP+Laravel) that have package.json for asset building.
-  // For repos that need TypeScript gates without tsconfig.json, use --pack=typescript.
-  if (await fs.exists(`${targetDir}/tsconfig.json`)) {
-    detected.push(TYPESCRIPT_PACK);
+  const signals = await collectDetectionSignals(targetDir, fs);
+  const detections = await buildDetections(targetDir, fs, signals);
+  for (const detection of detections) {
+    if (detection.detected) detected.push(detection.pack);
   }
-
-  if (await fs.exists(`${targetDir}/Cargo.toml`)) {
-    detected.push(RUST_PACK);
-  }
-
-  const rootEntries = await fs.readdir(targetDir).catch(() => []);
-  const hasDotnet = rootEntries.some((e) => {
-    const lower = e.toLowerCase();
-    return lower.endsWith('.csproj') || lower.endsWith('.sln');
-  });
-  const hasGlobalJson = await fs.exists(`${targetDir}/global.json`);
-  if (hasDotnet || hasGlobalJson) detected.push(DOTNET_PACK);
-
-  if (await fs.exists(`${targetDir}/go.mod`)) {
-    detected.push(GO_PACK);
-  }
-
-  if (
-    (await fs.exists(`${targetDir}/pyproject.toml`)) ||
-    (await fs.exists(`${targetDir}/setup.py`)) ||
-    (await fs.exists(`${targetDir}/requirements.txt`))
-  ) {
-    detected.push(PYTHON_PACK);
-  }
-
-  const hasMaven = await fs.exists(`${targetDir}/pom.xml`);
-  const hasGradle =
-    (await fs.exists(`${targetDir}/build.gradle`)) ||
-    (await fs.exists(`${targetDir}/build.gradle.kts`));
-  if (hasMaven || hasGradle) {
-    // Distinguish Java from Kotlin: check for .kt files in src/
-    const srcEntries = await fs.readdir(`${targetDir}/src`).catch(() => []);
-    const hasKotlinSrc = srcEntries.some((e) => e.toLowerCase().endsWith('.kt'));
-    if (hasKotlinSrc) {
-      detected.push(KOTLIN_PACK);
-    } else {
-      detected.push(JAVA_PACK);
-    }
-  }
-
-  const hasComposer = await fs.exists(`${targetDir}/composer.json`);
-  if (hasComposer) {
-    detected.push(PHP_PACK);
-  }
-
-  const hasGemfile = await fs.exists(`${targetDir}/Gemfile`);
-  if (hasGemfile) {
-    detected.push(RUBY_PACK);
-  }
-
-  const hasPackageSwift = await fs.exists(`${targetDir}/Package.swift`);
-  if (hasPackageSwift) {
-    detected.push(SWIFT_PACK);
-  }
-
-  const hasCMakeLists = await fs.exists(`${targetDir}/CMakeLists.txt`);
-  if (hasCMakeLists) {
-    detected.push(CPP_PACK);
-  }
-
-  const hasBuildSbt = await fs.exists(`${targetDir}/build.sbt`);
-  if (hasBuildSbt) {
-    detected.push(SCALA_PACK);
-  }
-
-  const hasMixExs = await fs.exists(`${targetDir}/mix.exs`);
-  if (hasMixExs) {
-    detected.push(ELIXIR_PACK);
-  }
-
-  const hasPubspec = await fs.exists(`${targetDir}/pubspec.yaml`);
-  if (hasPubspec) {
-    detected.push(DART_PACK);
-  }
-
-  const hasBuildZig = await fs.exists(`${targetDir}/build.zig`);
-  if (hasBuildZig) {
-    detected.push(ZIG_PACK);
-  }
-
-  const hasCabalFile = rootEntries.some((e) => e.toLowerCase().endsWith('.cabal'));
-  if (hasCabalFile) {
-    detected.push(HASKELL_PACK);
-  }
-
-  const hasLuaRock =
-    (await fs.exists(`${targetDir}/rockspec`)) ||
-    rootEntries.some((e) => e.toLowerCase().endsWith('.rockspec'));
-  if (hasLuaRock) {
-    detected.push(LUA_PACK);
-  }
-
-  const hasDuneProject = await fs.exists(`${targetDir}/dune-project`);
-  if (hasDuneProject) {
-    detected.push(OCAML_PACK);
-  }
-
   return detected.length > 0 ? detected : [TYPESCRIPT_PACK];
+}
+
+async function collectDetectionSignals(
+  targetDir: string,
+  fs: IFilesystem,
+): Promise<DetectionSignals> {
+  const rootEntries = await readDirSafe(targetDir, fs);
+  return {
+    rootEntries,
+    hasTypeScript: await fs.exists(`${targetDir}/tsconfig.json`),
+    hasRust: await fs.exists(`${targetDir}/Cargo.toml`),
+    hasDotnetProject: hasAnyMatchingEntry(rootEntries, ['.csproj', '.sln']),
+    hasGlobalJson: await fs.exists(`${targetDir}/global.json`),
+    hasGo: await fs.exists(`${targetDir}/go.mod`),
+    hasPython: await existsAny(fs, targetDir, ['pyproject.toml', 'setup.py', 'requirements.txt']),
+    hasMaven: await fs.exists(`${targetDir}/pom.xml`),
+    hasGradle: await existsAny(fs, targetDir, ['build.gradle', 'build.gradle.kts']),
+    hasComposer: await fs.exists(`${targetDir}/composer.json`),
+    hasGemfile: await fs.exists(`${targetDir}/Gemfile`),
+    hasSwiftPackage: await fs.exists(`${targetDir}/Package.swift`),
+    hasCMakeLists: await fs.exists(`${targetDir}/CMakeLists.txt`),
+    hasBuildSbt: await fs.exists(`${targetDir}/build.sbt`),
+    hasMixExs: await fs.exists(`${targetDir}/mix.exs`),
+    hasPubspec: await fs.exists(`${targetDir}/pubspec.yaml`),
+    hasBuildZig: await fs.exists(`${targetDir}/build.zig`),
+    hasDuneProject: await fs.exists(`${targetDir}/dune-project`),
+  };
+}
+
+async function buildDetections(
+  targetDir: string,
+  fs: IFilesystem,
+  signals: DetectionSignals,
+): Promise<readonly Readonly<{ pack: Pack; detected: boolean }>[]> {
+  return [
+    { pack: TYPESCRIPT_PACK, detected: signals.hasTypeScript },
+    { pack: RUST_PACK, detected: signals.hasRust },
+    { pack: DOTNET_PACK, detected: signals.hasDotnetProject || signals.hasGlobalJson },
+    { pack: GO_PACK, detected: signals.hasGo },
+    { pack: PYTHON_PACK, detected: signals.hasPython },
+    {
+      pack: await detectJvmPack(targetDir, fs, signals.hasMaven || signals.hasGradle),
+      detected: signals.hasMaven || signals.hasGradle,
+    },
+    { pack: PHP_PACK, detected: signals.hasComposer },
+    { pack: RUBY_PACK, detected: signals.hasGemfile },
+    { pack: SWIFT_PACK, detected: signals.hasSwiftPackage },
+    { pack: CPP_PACK, detected: signals.hasCMakeLists },
+    { pack: SCALA_PACK, detected: signals.hasBuildSbt },
+    { pack: ELIXIR_PACK, detected: signals.hasMixExs },
+    { pack: DART_PACK, detected: signals.hasPubspec },
+    { pack: ZIG_PACK, detected: signals.hasBuildZig },
+    { pack: HASKELL_PACK, detected: hasAnyMatchingEntry(signals.rootEntries, ['.cabal']) },
+    {
+      pack: LUA_PACK,
+      detected:
+        (await fs.exists(`${targetDir}/rockspec`)) ||
+        hasAnyMatchingEntry(signals.rootEntries, ['.rockspec']),
+    },
+    { pack: OCAML_PACK, detected: signals.hasDuneProject },
+  ];
+}
+
+async function detectJvmPack(
+  targetDir: string,
+  fs: IFilesystem,
+  hasJvmBuildFiles: boolean,
+): Promise<Pack> {
+  if (!hasJvmBuildFiles) return JAVA_PACK;
+  const srcEntries = await readDirSafe(`${targetDir}/src`, fs);
+  return hasAnyMatchingEntry(srcEntries, ['.kt']) ? KOTLIN_PACK : JAVA_PACK;
+}
+
+async function existsAny(
+  fs: IFilesystem,
+  targetDir: string,
+  fileNames: readonly string[],
+): Promise<boolean> {
+  for (const fileName of fileNames) {
+    if (await fs.exists(`${targetDir}/${fileName}`)) return true;
+  }
+  return false;
+}
+
+async function readDirSafe(targetPath: string, fs: IFilesystem): Promise<string[]> {
+  try {
+    return await fs.readdir(targetPath);
+  } catch {
+    return [];
+  }
+}
+
+function hasAnyMatchingEntry(entries: readonly string[], suffixes: readonly string[]): boolean {
+  return entries.some((entry) => {
+    const lower = entry.toLowerCase();
+    return suffixes.some((suffix) => lower.endsWith(suffix));
+  });
 }

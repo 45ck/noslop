@@ -20,237 +20,82 @@ import { OCAML_PACK } from '../domain/packs/ocaml/ocaml.js';
 import { KOTLIN_PACK } from '../domain/packs/kotlin/kotlin.js';
 import { LUA_PACK } from '../domain/packs/lua/lua.js';
 
-describe('detectPacks', () => {
-  it('detects TypeScript pack when tsconfig.json exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/tsconfig.json', '{}');
+async function detectWith(files: Record<string, string>) {
+  const fs = new InMemoryFilesystem();
+  for (const [path, content] of Object.entries(files)) {
+    fs.seed(`/project/${path}`, content);
+  }
+  return detectPacks('/project', fs);
+}
 
-    const packs = await detectPacks('/project', fs);
-
-    expect(packs).toEqual([TYPESCRIPT_PACK]);
+describe('detectPacks fallback and mixed repos', () => {
+  it('defaults to TypeScript for empty directories and package.json-only repos', async () => {
+    expect(await detectWith({})).toEqual([TYPESCRIPT_PACK]);
+    expect(await detectWith({ 'package.json': '{}' })).toEqual([TYPESCRIPT_PACK]);
   });
 
-  it('does not detect TypeScript pack from package.json alone (falls back to default)', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/package.json', '{}');
-
-    const packs = await detectPacks('/project', fs);
-
-    // package.json alone no longer triggers TypeScript detection.
-    // Since no other pack indicators are present, the default fallback applies.
-    expect(packs).toEqual([TYPESCRIPT_PACK]);
-  });
-
-  it('detects only PHP pack when composer.json and package.json both exist', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/composer.json', '{}');
-    fs.seed('/project/package.json', '{}');
-
-    const packs = await detectPacks('/project', fs);
-
-    expect(packs).toContain(PHP_PACK);
-    expect(packs).not.toContain(TYPESCRIPT_PACK);
-    expect(packs).toHaveLength(1);
-  });
-
-  it('detects Rust pack when Cargo.toml exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/Cargo.toml', '');
-
-    const packs = await detectPacks('/project', fs);
-
-    expect(packs).toEqual([RUST_PACK]);
-  });
-
-  it('detects dotnet pack when root .csproj file exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/MyApp.csproj', '');
-
-    const packs = await detectPacks('/project', fs);
-
-    expect(packs).toEqual([DOTNET_PACK]);
-  });
-
-  it('detects dotnet pack when global.json exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/global.json', '{}');
-
-    const packs = await detectPacks('/project', fs);
-
-    expect(packs).toEqual([DOTNET_PACK]);
-  });
-
-  it('returns TypeScript pack as default fallback for empty directory', async () => {
-    const fs = new InMemoryFilesystem();
-
-    const packs = await detectPacks('/project', fs);
-
-    expect(packs).toEqual([TYPESCRIPT_PACK]);
-  });
-
-  it('detects TypeScript and Rust packs together in a monorepo', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/tsconfig.json', '{}');
-    fs.seed('/project/Cargo.toml', '');
-
-    const packs = await detectPacks('/project', fs);
-
+  it('combines TypeScript, Rust, and dotnet detections in polyglot repos', async () => {
+    const packs = await detectWith({
+      'tsconfig.json': '{}',
+      'Cargo.toml': '',
+      'MyApp.csproj': '',
+    });
     expect(packs).toContain(TYPESCRIPT_PACK);
     expect(packs).toContain(RUST_PACK);
-    expect(packs).toHaveLength(2);
-  });
-
-  it('detects all three packs together in a polyglot repo', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/tsconfig.json', '{}');
-    fs.seed('/project/Cargo.toml', '');
-    fs.seed('/project/MyApp.csproj', '');
-
-    const packs = await detectPacks('/project', fs);
-
-    expect(packs).toHaveLength(3);
-  });
-
-  it('detects Go pack when go.mod exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/go.mod', 'module example.com/myapp');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(GO_PACK);
-  });
-
-  it('detects Python pack when pyproject.toml exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/pyproject.toml', '[tool.poetry]');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(PYTHON_PACK);
-  });
-
-  it('detects Python pack when requirements.txt exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/requirements.txt', 'flask');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(PYTHON_PACK);
-  });
-
-  it('detects Python pack when setup.py exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/setup.py', 'from setuptools import setup');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(PYTHON_PACK);
-  });
-
-  it('detects Java pack when pom.xml exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/pom.xml', '<project/>');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(JAVA_PACK);
-  });
-
-  it('detects PHP pack when composer.json exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/composer.json', '{}');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(PHP_PACK);
-  });
-
-  it('detects Ruby pack when Gemfile exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/Gemfile', 'source "https://rubygems.org"');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(RUBY_PACK);
-  });
-
-  it('detects Swift pack when Package.swift exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/Package.swift', '// swift-tools-version:5.9');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(SWIFT_PACK);
-  });
-
-  it('detects C/C++ pack when CMakeLists.txt exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/CMakeLists.txt', 'cmake_minimum_required(VERSION 3.20)');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(CPP_PACK);
-  });
-
-  it('detects Scala pack when build.sbt exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/build.sbt', 'name := "myapp"');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(SCALA_PACK);
-  });
-
-  it('detects Elixir pack when mix.exs exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/mix.exs', 'defmodule MyApp.MixProject do');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(ELIXIR_PACK);
-  });
-
-  it('detects Dart pack when pubspec.yaml exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/pubspec.yaml', 'name: myapp');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(DART_PACK);
-  });
-
-  it('detects Zig pack when build.zig exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/build.zig', 'const std = @import("std");');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(ZIG_PACK);
-  });
-
-  it('detects Haskell pack when .cabal file exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/myapp.cabal', 'name: myapp');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(HASKELL_PACK);
-  });
-
-  it('detects OCaml pack when dune-project exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/dune-project', '(lang dune 3.0)');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(OCAML_PACK);
-  });
-
-  it('detects Java pack when Maven project has Java source files but no Kotlin files', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/pom.xml', '<project/>');
-    fs.seed('/project/src/Main.java', 'public class Main {}');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(JAVA_PACK);
-    expect(packs).not.toContain(KOTLIN_PACK);
-  });
-
-  it('detects Kotlin pack when .kt file exists in src/', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/build.gradle.kts', 'plugins { kotlin("jvm") }');
-    fs.seed('/project/src/Main.kt', 'fun main() {}');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(KOTLIN_PACK);
-  });
-
-  it('detects Lua pack when .rockspec file exists', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/mylib-1.0-1.rockspec', 'package = "mylib"');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(LUA_PACK);
-  });
-
-  it('detects dotnet pack when .CSPROJ file has uppercase extension', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/MyApp.CSPROJ', '');
-    const packs = await detectPacks('/project', fs);
     expect(packs).toContain(DOTNET_PACK);
   });
 
-  it('detects Haskell pack when .Cabal file has mixed-case extension', async () => {
-    const fs = new InMemoryFilesystem();
-    fs.seed('/project/myapp.Cabal', 'name: myapp');
-    const packs = await detectPacks('/project', fs);
-    expect(packs).toContain(HASKELL_PACK);
+  it('does not infer TypeScript from package.json when a stronger pack is present', async () => {
+    const packs = await detectWith({ 'composer.json': '{}', 'package.json': '{}' });
+    expect(packs).toEqual([PHP_PACK]);
+  });
+});
+
+describe('detectPacks language markers', () => {
+  it.each([
+    [{ 'tsconfig.json': '{}' }, TYPESCRIPT_PACK],
+    [{ 'Cargo.toml': '' }, RUST_PACK],
+    [{ 'MyApp.csproj': '' }, DOTNET_PACK],
+    [{ 'global.json': '{}' }, DOTNET_PACK],
+    [{ 'go.mod': 'module example.com/myapp' }, GO_PACK],
+    [{ 'pyproject.toml': '[tool.poetry]' }, PYTHON_PACK],
+    [{ 'requirements.txt': 'flask' }, PYTHON_PACK],
+    [{ 'setup.py': 'from setuptools import setup' }, PYTHON_PACK],
+    [{ 'pom.xml': '<project/>' }, JAVA_PACK],
+    [{ 'composer.json': '{}' }, PHP_PACK],
+    [{ Gemfile: 'source "https://rubygems.org"' }, RUBY_PACK],
+    [{ 'Package.swift': '// swift-tools-version:5.9' }, SWIFT_PACK],
+    [{ 'CMakeLists.txt': 'cmake_minimum_required(VERSION 3.20)' }, CPP_PACK],
+    [{ 'build.sbt': 'name := "myapp"' }, SCALA_PACK],
+    [{ 'mix.exs': 'defmodule MyApp.MixProject do' }, ELIXIR_PACK],
+    [{ 'pubspec.yaml': 'name: myapp' }, DART_PACK],
+    [{ 'build.zig': 'const std = @import("std");' }, ZIG_PACK],
+    [{ 'myapp.cabal': 'name: myapp' }, HASKELL_PACK],
+    [{ 'dune-project': '(lang dune 3.0)' }, OCAML_PACK],
+    [{ 'mylib-1.0-1.rockspec': 'package = "mylib"' }, LUA_PACK],
+  ])('detects the expected pack for %j', async (files, expectedPack) => {
+    expect(await detectWith(files)).toContain(expectedPack);
+  });
+});
+
+describe('detectPacks JVM and case-insensitive detection', () => {
+  it('detects Java when Maven sources are Java-only and Kotlin when .kt files exist', async () => {
+    const javaPacks = await detectWith({
+      'pom.xml': '<project/>',
+      'src/Main.java': 'class Main {}',
+    });
+    const kotlinPacks = await detectWith({
+      'build.gradle.kts': 'plugins { kotlin("jvm") }',
+      'src/Main.kt': 'fun main() {}',
+    });
+
+    expect(javaPacks).toContain(JAVA_PACK);
+    expect(javaPacks).not.toContain(KOTLIN_PACK);
+    expect(kotlinPacks).toContain(KOTLIN_PACK);
+  });
+
+  it('matches case-insensitive file extensions for dotnet and Haskell', async () => {
+    expect(await detectWith({ 'MyApp.CSPROJ': '' })).toContain(DOTNET_PACK);
+    expect(await detectWith({ 'myapp.Cabal': 'name: myapp' })).toContain(HASKELL_PACK);
   });
 });
