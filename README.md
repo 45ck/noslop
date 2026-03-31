@@ -21,6 +21,10 @@ noslop installs three enforcement layers — git hooks, CI required checks, and 
 - Replacing your linter or formatter — noslop enforces what you already have, it does not replace tools
 - Manual-only workflows — if no AI agents touch your code, noslop is overkill
 
+## Evidence
+
+Controlled experiments comparing the full 45ck toolkit (noslop + specgraph + skill-harness) against raw Claude Code showed a consistent +12–22 point gap across 5 experiments (35-point scale). The gap is largest on ambiguous briefs (+22) where the quality gate workflow forces scope discipline before code is written. Full data: [skill-harness/experiments/RESULTS.md](https://github.com/45ck/skill-harness/blob/main/experiments/RESULTS.md).
+
 ## Prerequisites
 
 | Requirement | Version     | Notes                                                                                                     |
