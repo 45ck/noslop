@@ -21,6 +21,7 @@ noslop check --tier=slow
 - Do not modify `.githooks/`, `.github/workflows/`, or `.claude/settings.json` without the `noslop-approved` PR label
 - Fix lint/type errors; do not disable rules
 - Never use `[skip ci]`, `skip-checks`, or `SKIP_CI` in commit messages or CI configuration
+- Never use `NOSLOP_ALLOW_PROTECTED_CHANGES=1`; it is a human-only local maintenance override
 
 ## Do not modify protected paths
 
@@ -31,7 +32,7 @@ These paths are enforced by `.claude/settings.json` and CI guardrails:
 - `.claude/settings.json`
 - `.claude/hooks/`
 
-To change these, run `noslop install` to regenerate from templates, or ask a human to apply the `noslop-approved` PR label.
+To change these, run `noslop install` to regenerate from templates, or ask a human to apply the `noslop-approved` PR label. Human maintainers may use `NOSLOP_ALLOW_PROTECTED_CHANGES=1` for an intentional local commit, but agents must not use that override.
 
 ## If a gate blocks you
 

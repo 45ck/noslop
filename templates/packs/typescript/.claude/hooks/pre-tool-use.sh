@@ -19,6 +19,12 @@ if echo "$COMMAND" | grep -qF -- '--no-verify'; then
   exit 0
 fi
 
+# Block the local protected-file maintenance override for AI agents.
+if echo "$COMMAND" | grep -qF 'NOSLOP_ALLOW_PROTECTED_CHANGES'; then
+  echo '{"decision":"block","reason":"noslop: NOSLOP_ALLOW_PROTECTED_CHANGES is a human-only local maintenance override for protected gate files. Agents must not use it; ask for human review and the noslop-approved PR label instead."}'
+  exit 0
+fi
+
 # Block SKIP_CI env var tricks
 if echo "$COMMAND" | grep -qiF 'SKIP_CI'; then
   echo '{"decision":"block","reason":"noslop: CI-skip patterns (SKIP_CI, [skip ci]) are not allowed. CI is the authoritative quality gate and cannot be bypassed. Remove the skip pattern and let CI run normally."}'

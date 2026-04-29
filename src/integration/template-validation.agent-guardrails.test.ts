@@ -13,6 +13,7 @@ describe('template .claude/settings.json', () => {
     expect(deny).toContain('Write(.claude/hooks/**)');
     expect(deny).toContain('Write(.claude/settings.json)');
     expect(deny).toContain('Write(AGENTS.md)');
+    expect(deny).toContain('Bash(*NOSLOP_ALLOW_PROTECTED_CHANGES*)');
   });
 
   it.each(ALL_PACK_IDS)('%s uses **/ prefixes for config deny rules', (packId) => {
@@ -42,6 +43,7 @@ describe('template pre-tool-use.sh and AGENTS.md', () => {
     for (const snippet of [
       'jq is not installed',
       '--no-verify bypasses pre-commit hooks and is not allowed',
+      'NOSLOP_ALLOW_PROTECTED_CHANGES is a human-only local maintenance override',
       'CI-skip patterns',
       'quality gate configs are protected',
       '.githooks/',
@@ -67,6 +69,7 @@ describe('template pre-tool-use.sh and AGENTS.md', () => {
     expect(content).toMatch(/[Nn]ever.*--no-verify/);
     expect(content).toMatch(/[Nn]ever.*--force/);
     expect(content).toMatch(/[Nn]ever.*\[skip ci\]/);
+    expect(content).toContain('Never use `NOSLOP_ALLOW_PROTECTED_CHANGES=1`');
   });
 });
 

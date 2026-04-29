@@ -3,18 +3,31 @@
 set -e
 
 # Block commits that modify protected quality gate config or hook files.
+# Humans can use NOSLOP_ALLOW_PROTECTED_CHANGES=1 for local maintenance; CI still requires noslop-approved.
 PROTECTED_CONFIGS="build.zig"
+
+protected_change() {
+  path="$1"
+  kind="$2"
+  if [ "${NOSLOP_ALLOW_PROTECTED_CHANGES:-}" = "1" ]; then
+    echo "noslop: allowing protected ${kind} change to ${path}; CI still requires noslop-approved." >&2
+    return 0
+  fi
+  echo "noslop: ${path} is protected ${kind} -- changes require explicit maintenance approval." >&2
+  echo "  For local maintenance only, rerun with NOSLOP_ALLOW_PROTECTED_CHANGES=1." >&2
+  echo "  PRs must still carry the noslop-approved label." >&2
+  exit 1
+}
+
 while IFS= read -r staged_file; do
   for cfg in $PROTECTED_CONFIGS; do
     if [ "$staged_file" = "$cfg" ]; then
-      echo "noslop: $cfg is a protected quality gate config — changes cannot be committed." >&2
-      exit 1
+      protected_change "$cfg" "quality gate config"
     fi
   done
   case "$staged_file" in
     .githooks/*|.github/workflows/*|.claude/hooks/*|.claude/settings.json|AGENTS.md)
-      echo "noslop: $staged_file is protected gate infrastructure — changes cannot be committed." >&2
-      exit 1
+      protected_change "$staged_file" "gate infrastructure"
       ;;
   esac
 done << STAGED

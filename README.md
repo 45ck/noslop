@@ -139,6 +139,8 @@ your-repo/
 
 **Opting out.** The gates are intentionally hard to skip locally. There is no supported way to disable them per-developer. To skip the spell gate for a single run, use `noslop check --no-spell` or pass `--no-verify` to git (which noslop's own Claude guardrail will block for AI agents but not for humans). To remove a gate permanently, delete or edit the relevant hook file — though this defeats the purpose.
 
+**Protected-file maintenance.** Local hooks block accidental edits to hook, CI, agent-policy, and quality-config files. Human maintainers can create an intentional local commit with `NOSLOP_ALLOW_PROTECTED_CHANGES=1`; agents are blocked from using that override, and CI still requires the `noslop-approved` label. See [docs/guides/hook-strictness.md](docs/guides/hook-strictness.md).
+
 **Claude guardrails.** The `pre-tool-use.sh` hook intercepts every Bash tool call Claude Code makes before execution and blocks commands containing `--no-verify`, `SKIP_CI`, `[skip ci]`, or ESLint config-disabling flags. Combined with the `settings.json` deny rules, this prevents any AI agent from bypassing the local gates.
 
 ## Configuration file

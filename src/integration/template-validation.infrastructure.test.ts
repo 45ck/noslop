@@ -35,6 +35,8 @@ describe('template git hooks and workflows', () => {
     expect(content).toContain('.github/workflows/*');
     expect(content).toContain('.claude/hooks/*');
     expect(content).toContain('AGENTS.md');
+    expect(content).toContain('NOSLOP_ALLOW_PROTECTED_CHANGES');
+    expect(content).toContain('noslop-approved');
     expect(content).not.toContain('command -v noslop');
   });
 

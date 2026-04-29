@@ -87,6 +87,7 @@ After `noslop install`, these constraints apply. You MUST NOT violate them:
 4. **Do not use force push.** Never run `git push -f` or `git push --force`.
 5. **Do not disable linters inline.** Do not add `// eslint-disable`, `#noqa`, `// NOLINT`, or equivalent suppression comments to pass a gate.
 6. **Do not skip CI.** Never use `[skip ci]`, `skip-checks`, or `SKIP_CI` in commit messages or CI configuration. CI is the authoritative quality gate and cannot be bypassed.
+7. **Do not use the protected-file maintenance override.** `NOSLOP_ALLOW_PROTECTED_CHANGES=1` is for human local maintenance only. Agents must ask for human review and the `noslop-approved` PR label instead.
 
 ## Before every commit
 
@@ -162,6 +163,23 @@ When the pre-tool-use hook blocks a tool call, you will receive a JSON response 
   "reason": "noslop: editing 'eslint.config.js' is blocked — quality gate configs are protected. To change rules, run 'noslop install' to regenerate from templates, or ask a human to apply the noslop-approved PR label."
 }
 ```
+
+**Protected-file maintenance override:**
+
+```json
+{
+  "decision": "block",
+  "reason": "noslop: NOSLOP_ALLOW_PROTECTED_CHANGES is a human-only local maintenance override for protected gate files. Agents must not use it; ask for human review and the noslop-approved PR label instead."
+}
+```
+
+Human maintainers can use the override for local commits that intentionally update gate files:
+
+```sh
+NOSLOP_ALLOW_PROTECTED_CHANGES=1 git commit -m "chore: update quality gates"
+```
+
+That override does not skip CI. PRs touching protected paths still need the `noslop-approved` label.
 
 When the commit-msg hook rejects a message:
 

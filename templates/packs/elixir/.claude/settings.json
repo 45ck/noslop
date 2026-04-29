@@ -2,6 +2,7 @@
   "permissions": {
     "deny": [
       "Bash(*--no-verify*)",
+      "Bash(*NOSLOP_ALLOW_PROTECTED_CHANGES*)",
       "Bash(*--force*)",
       "Bash(git push -f*)",
       "Edit(.githooks/**)",
