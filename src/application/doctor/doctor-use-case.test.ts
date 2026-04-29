@@ -66,6 +66,18 @@ describe('doctor use case health checks', () => {
     expect(emptyHooksPath.healthy).toBe(false);
   });
 
+  it('reports unhealthy when hooks path points at another hook manager', async () => {
+    const result = await runDoctorWithFixture({
+      mutate: (_fs, runner) => {
+        runner.setStdout('git config core.hooksPath', '.husky');
+      },
+    });
+
+    expect(result.healthy).toBe(false);
+    expect(findCheck(result, 'git core.hooksPath')?.passed).toBe(false);
+    expect(findCheck(result, 'git core.hooksPath')?.detail).toContain('expected .githooks');
+  });
+
   it('includes detail messages for all checks and handles git command errors', async () => {
     const runner = { run: async () => Promise.reject(new Error('git not found')) };
     const fs = new InMemoryFilesystem();

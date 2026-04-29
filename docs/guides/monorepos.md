@@ -40,11 +40,13 @@ noslop init --pack typescript --pack rust
 noslop init --pack typescript --pack go
 ```
 
-Each pack installs its own config file (e.g. `eslint.config.js` and `pyproject.toml`). The shared plumbing (`.githooks/`, `.github/workflows/`, `.claude/`) is installed once and covers all packs.
+Each pack installs its own config file (e.g. `eslint.config.js` and `pyproject.toml`). Shared plumbing (`.githooks/`, `.github/workflows/`, `.claude/`) is also installed from the selected pack templates. When multiple packs write the same shared file, verify the result with `noslop doctor` and direct `noslop check --tier=fast --pack=<pack>` runs for every pack you expect to protect.
+
+Current limitation: generated hook files are template files, not a composed hook graph. If a multi-pack install overwrites `.githooks/pre-commit` or `.githooks/pre-push`, the active local hook may only run the commands from the last template written. In that case, keep CI authoritative and update the hook to call `noslop check --tier=fast` or a project-owned wrapper that runs all required pack checks.
 
 ## How gates fire
 
-When `noslop check --tier=fast` runs (via the pre-commit hook or directly), it enforces the fast gates for **every installed pack** in sequence. A failure in any pack's gate blocks the commit.
+When `noslop check --tier=fast` runs directly, it enforces the fast gates for **every detected or configured pack** in sequence. A failure in any pack's gate blocks the command. Local git hooks only enforce the same set if the installed hook delegates to `noslop check` or a wrapper that runs the same pack list.
 
 ```sh
 # With typescript + python installed:

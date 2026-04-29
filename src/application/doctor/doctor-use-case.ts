@@ -124,14 +124,18 @@ async function runCommandSafely(runner: IProcessRunner, targetDir: string): Prom
 function buildHooksPathCheck(result: RunResult): DoctorCheck {
   const hooksPath = result.stdout.replace(/\r?\n$/, '').trim();
   const configured = result.exitCode === 0 && hooksPath.length > 0;
+  const expectedHooksPath = '.githooks';
+  const pointsToNoslopHooks = configured && hooksPath === expectedHooksPath;
   return {
     name: 'git core.hooksPath',
-    passed: configured,
-    detail: configured
+    passed: pointsToNoslopHooks,
+    detail: pointsToNoslopHooks
       ? `core.hooksPath = ${hooksPath}`
-      : result.exitCode === 0
-        ? 'core.hooksPath is empty — run: noslop init'
-        : 'core.hooksPath not set — run: noslop init',
+      : configured
+        ? `core.hooksPath = ${hooksPath}; expected .githooks — run: noslop init`
+        : result.exitCode === 0
+          ? 'core.hooksPath is empty — run: noslop init'
+          : 'core.hooksPath not set — run: noslop init',
   };
 }
 

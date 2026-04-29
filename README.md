@@ -7,7 +7,7 @@
 
 **Agent-boundary quality gates for any repo.**
 
-noslop installs three enforcement layers — git hooks, CI required checks, and Claude Code guardrails — into any existing repository with a single command. It supports 19 language packs. It targets teams using Claude Code, Codex CLI, or similar AI coding agents where automated enforcement matters more than developer convenience.
+noslop installs three enforcement layers — git hooks, CI workflow templates, and Claude Code guardrails — into any existing repository with a single command. It supports 19 language packs. It targets teams using Claude Code, Codex CLI, or similar AI coding agents where automated enforcement matters more than developer convenience.
 
 ## Who this is for
 
@@ -23,7 +23,7 @@ noslop installs three enforcement layers — git hooks, CI required checks, and 
 
 ## Evidence
 
-Controlled experiments comparing the full 45ck toolkit (noslop + specgraph + skill-harness) against raw Claude Code showed a consistent +12–22 point gap across 5 experiments (35-point scale). The gap is largest on ambiguous briefs (+22) where the quality gate workflow forces scope discipline before code is written. Full data: [skill-harness/experiments/RESULTS.md](https://github.com/45ck/skill-harness/blob/main/experiments/RESULTS.md).
+Controlled experiments comparing the full 45ck toolkit (noslop + specgraph + skill-harness) against raw Claude Code showed a +12–22 point gap across the completed toolkit-vs-baseline experiments (35-point scale). The component-isolation run measured noslop alone at +3 points, while specgraph carried most of the traceability gain. Treat this as controlled workflow evidence, not proof that every repo improves automatically after install. Full data: [skill-harness/experiments/RESULTS.md](https://github.com/45ck/skill-harness/blob/main/experiments/RESULTS.md). Current adoption notes: [docs/guides/adoption-audit-2026-04-29.md](docs/guides/adoption-audit-2026-04-29.md).
 
 ## Prerequisites
 
@@ -70,7 +70,7 @@ Three independent enforcement layers, each able to catch bypasses that slip past
 
 **Layer 1 — Local git hooks.** The `pre-commit` hook runs fast gates (format, lint, spell) on every `git commit`. The `pre-push` hook runs slow gates (type check, tests) before every push. The `commit-msg` hook rejects messages containing CI-bypass patterns or not following Conventional Commits. Wired via `git config core.hooksPath .githooks` — no `npm install` required.
 
-**Layer 2 — CI required checks.** `quality.yml` runs on every PR and push to `main`. Configured as a required status check, it cannot be skipped by bypassing local hooks. `guardrails.yml` blocks any PR that modifies the protected enforcement files unless a human reviewer has applied the `noslop-approved` label.
+**Layer 2 — CI workflow templates.** `quality.yml` runs on every PR and push to `main` after it is committed. Make that workflow a required status check in GitHub branch protection or rulesets so it cannot be skipped by bypassing local hooks. `guardrails.yml` blocks any PR that modifies the protected enforcement files unless a human reviewer has applied the `noslop-approved` label.
 
 **Layer 3 — Claude Code guardrails.** `.claude/settings.json` denies the agent permission to run `--no-verify`, `--force`, or `git push -f`, and denies edits to any protected path. `.claude/hooks/pre-tool-use.sh` intercepts every Bash tool call before execution and blocks bypass patterns. `AGENTS.md` states all rules in plain language for any AI agent working in the repo.
 
@@ -102,7 +102,7 @@ your-repo/
 │   └── commit-msg      # Enforces Conventional Commits; blocks [skip ci] patterns
 ├── .github/
 │   └── workflows/
-│       ├── quality.yml     # Required CI check: full gate suite on PRs and pushes to main
+│       ├── quality.yml     # CI workflow: full gate suite on PRs and pushes to main
 │       └── guardrails.yml  # Blocks PRs that touch protected files without noslop-approved label
 ├── .claude/
 │   ├── settings.json       # Denies --no-verify, --force, and edits to protected paths
@@ -125,7 +125,7 @@ your-repo/
 
 ## How it works
 
-**Tier system.** Gates are grouped into three tiers mapped to development workflow stages. The pre-commit hook runs `noslop check --tier=fast`; the pre-push hook runs `noslop check --tier=slow`; CI runs the full pipeline. Fast gates complete in seconds so they stay out of the way. The CI tier is authoritative and cannot be skipped by any local trick.
+**Tier system.** Gates are grouped into three tiers mapped to development workflow stages. The pre-commit hook runs the pack's fast commands directly or through the installed wrapper; the pre-push hook runs slow commands; CI runs the full pipeline. Fast gates complete in seconds so they stay out of the way. The CI tier is authoritative when the generated workflow is enabled and marked required in branch protection or rulesets.
 
 | Tier   | Trigger                                      | Purpose                                                             |
 | ------ | -------------------------------------------- | ------------------------------------------------------------------- |
@@ -133,9 +133,9 @@ your-repo/
 | `slow` | `pre-push` hook — before every push          | Type checking and full test suite. Slower but still runs locally.   |
 | `ci`   | GitHub Actions — on PRs and pushes to `main` | Full pipeline. Authoritative: cannot be skipped by any local trick. |
 
-**Hooks wiring.** Hooks connect via `git config core.hooksPath .githooks`, not via a dev-dependency. They activate for every contributor without requiring `npm install` or any other setup step beyond cloning the repo.
+**Hooks wiring.** Hooks connect via `git config core.hooksPath .githooks`, not via a dev-dependency. That git config is local to each checkout and is not stored in the repository. A clone with committed `.githooks/` files still needs one local wiring step before the hooks run.
 
-**Team rollout.** Run `noslop init` once, commit the generated files (`.githooks/`, `.github/workflows/`, `.claude/`), and push. Every contributor gets the gates automatically on `git clone` — no per-developer install of noslop is required. The hooks call the project's own toolchain (ESLint, cargo, ruff, etc.) which must already be available in each developer's environment.
+**Team rollout.** Run `noslop init`, commit the generated files (`.githooks/`, `.github/workflows/`, `.claude/`), and push. Each contributor or agent checkout must then run `noslop init`, `noslop doctor`, or at minimum `git config core.hooksPath .githooks` once in that clone. The hooks call the project's own toolchain (ESLint, cargo, ruff, etc.) which must already be available in each developer's environment.
 
 **Opting out.** The gates are intentionally hard to skip locally. There is no supported way to disable them per-developer. To skip the spell gate for a single run, use `noslop check --no-spell` or pass `--no-verify` to git (which noslop's own Claude guardrail will block for AI agents but not for humans). To remove a gate permanently, delete or edit the relevant hook file — though this defeats the purpose.
 
@@ -170,7 +170,7 @@ You can commit a `.noslop.json` file in your repo root to set defaults. CLI flag
 Run `noslop doctor --dir .` and check which items fail:
 
 - **Hook files missing** — Run `noslop init` (or `noslop update` to preserve your configs) to regenerate them.
-- **`git config core.hooksPath` not set** — Make sure the directory is a git repo (`git init`), then run `noslop init` again.
+- **`git config core.hooksPath` not set or points somewhere else** — Make sure the directory is a git repo (`git init`), then run `noslop init` again. Hook managers such as Husky, Beads, or lefthook can coexist only if they delegate to `.githooks/`; otherwise noslop's local hooks are installed but inert.
 - **CI workflow files missing** — Run `noslop update --pack <your-pack>` to regenerate `.github/workflows/` files.
 
 ### Gate fails with "command not found"

@@ -1,2 +1,8 @@
 worktree
 worktrees
+lefthook
+Portarium
+specgraph
+stdio
+VibeCoord
+vibecoord
