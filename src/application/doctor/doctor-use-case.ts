@@ -67,8 +67,12 @@ async function collectBaseChecks(
     }),
   );
 
-  const preCommitCheck = await buildExecutableCheck(fs, `${targetDir}/.githooks/pre-commit`);
-  if (preCommitCheck) checks.push(preCommitCheck);
+  const hookExecutableChecks = await Promise.all(
+    ['pre-commit', 'pre-push', 'commit-msg'].map((hookName) =>
+      buildExecutableCheck(fs, targetDir, hookName),
+    ),
+  );
+  checks.push(...hookExecutableChecks.filter((check) => check !== null));
 
   const presenceChecks = await Promise.all(
     createPresenceCheckDefinitions(targetDir).map((definition) =>
@@ -151,15 +155,20 @@ async function buildPresenceCheck(
   };
 }
 
-async function buildExecutableCheck(fs: IFilesystem, path: string): Promise<DoctorCheck | null> {
+async function buildExecutableCheck(
+  fs: IFilesystem,
+  targetDir: string,
+  hookName: string,
+): Promise<DoctorCheck | null> {
+  const path = `${targetDir}/.githooks/${hookName}`;
   if (!(await fs.exists(path))) return null;
   const executable = await fs.isExecutable(path);
   return {
-    name: '.githooks/pre-commit permissions',
+    name: `.githooks/${hookName} permissions`,
     passed: executable,
     detail: executable
-      ? 'pre-commit is executable'
-      : 'pre-commit is not executable — run: chmod +x .githooks/pre-commit',
+      ? `${hookName} is executable`
+      : `${hookName} is not executable — run: chmod +x .githooks/${hookName}`,
   };
 }
 

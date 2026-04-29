@@ -8,6 +8,10 @@ import { createGate } from '../../domain/gate/gate.js';
 function seedAll(fs: InMemoryFilesystem): void {
   fs.seed('/target/.githooks/pre-commit', '#!/bin/sh');
   fs.markExecutable('/target/.githooks/pre-commit');
+  fs.seed('/target/.githooks/pre-push', '#!/bin/sh');
+  fs.markExecutable('/target/.githooks/pre-push');
+  fs.seed('/target/.githooks/commit-msg', '#!/bin/sh');
+  fs.markExecutable('/target/.githooks/commit-msg');
   fs.seed('/target/.github/workflows/quality.yml', 'name: quality');
   fs.seed('/target/.claude/settings.json', '{}');
   fs.seed('/target/.claude/hooks/pre-tool-use.sh', '#!/bin/sh');
@@ -216,10 +220,28 @@ describe('doctor use case permissions and strict mode', () => {
     });
 
     expect(findCheck(executable, '.githooks/pre-commit permissions')?.passed).toBe(true);
+    expect(findCheck(executable, '.githooks/pre-push permissions')?.passed).toBe(true);
+    expect(findCheck(executable, '.githooks/commit-msg permissions')?.passed).toBe(true);
     expect(findCheck(nonExecutable, '.githooks/pre-commit permissions')?.detail).toContain(
       'chmod +x',
     );
     expect(findCheck(missingPreCommit, '.githooks/pre-commit permissions')).toBeUndefined();
+  });
+
+  it('reports each non-executable installed hook', async () => {
+    const result = await runDoctorWithFixture({
+      mutate: async (fs) => {
+        await fs.rmdir('/target/.githooks', { recursive: true });
+        fs.seed('/target/.githooks/pre-commit', '#!/bin/sh');
+        fs.seed('/target/.githooks/pre-push', '#!/bin/sh');
+        fs.seed('/target/.githooks/commit-msg', '#!/bin/sh');
+      },
+    });
+
+    expect(result.healthy).toBe(false);
+    expect(findCheck(result, '.githooks/pre-commit permissions')?.passed).toBe(false);
+    expect(findCheck(result, '.githooks/pre-push permissions')?.passed).toBe(false);
+    expect(findCheck(result, '.githooks/commit-msg permissions')?.passed).toBe(false);
   });
 
   it('strict mode fails when required toolchains are missing', async () => {
