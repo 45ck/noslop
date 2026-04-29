@@ -14,6 +14,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DOCS = [
   'README.md',
   'docs/guides/coding-agents.md',
+  'docs/guides/adoption-audit-2026-04-29.md',
+  'docs/guides/hook-strictness.md',
   'docs/glossary.md',
   'docs/guides/greenfield.md',
   'docs/guides/monorepos.md',
